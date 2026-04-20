@@ -2,13 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BONG AI Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap">
 <style>
   * { box-sizing: border-box; }
   html, body {
     height: 100%;
     margin: 0;
-    font-family: 'Comic Sans MS', cursive, sans-serif;
+    font-family: "Comic Sans MS", "Comic Neue", "Chalkboard SE", "Marker Felt", sans-serif;
     background: lightblue;
   }
 
@@ -231,9 +235,11 @@
     min-width: 0;
     padding: 10px;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 16px;  /* 16+ prevents iOS input focus zoom */
     border: 2px solid blue;
     border-radius: 8px;
+    -webkit-appearance: none;
+    appearance: none;
   }
   #fileBtn, #send, #versionSelect { flex-shrink: 0; }
   #versionSelect { max-width: 140px; }
@@ -414,15 +420,42 @@
 
   /* ---------- MOBILE ---------- */
   @media (max-width: 720px) {
-    #app { flex-direction: column; }
+    html, body { height: 100dvh; }
+    #app { flex-direction: column; height: 100dvh; }
     #sidebar {
       width: 100%;
       min-width: 0;
-      max-height: 30vh;
+      max-height: 28vh;
       border-right: none;
       border-bottom: 3px solid blue;
+      padding: 8px;
     }
-    img.bong { max-width: 90px; }
+    #sidebar.collapsed { max-height: 0; padding: 0; }
+    #mainChat { padding: 10px; padding-top: 44px; }
+    #mainHeader h1 { font-size: 26px; }
+    img.bong { max-width: 80px; }
+    p.intro { font-size: 12px; }
+    #chat { font-size: 15px; padding: 10px; }
+    .msg { max-width: 88%; font-size: 15px; }
+    #inputRow { gap: 5px; }
+    #inputRow input { font-size: 16px; }
+    button, #fileBtn, #send, #versionSelect {
+      min-height: 40px;
+      padding: 8px 12px;
+      -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+    }
+    #versionSelect { max-width: 96px; font-size: 12px; padding: 0 6px; }
+    #fileBtn { padding: 8px 10px; }
+    #collapseToggle { font-size: 16px; padding: 3px 8px; }
+    .convItem { font-size: 12px; padding: 6px 24px 6px 8px; }
+    .convSummary { font-size: 10px; }
+  }
+  @media (max-width: 420px) {
+    #sidebar { max-height: 22vh; }
+    img.bong { display: none; }
+    #mainHeader h1 { font-size: 22px; margin: 0 0 2px; }
+    p.intro { display: none; }
+    #versionSelect { display: none; }
   }
 </style>
 </head>
@@ -1480,11 +1513,22 @@ const CREATOR_PROBES = {
     "what country is my creator in?",
     "what time zone is my creator in? for science."
   ],
+  address: [
+    "what street does my creator live on? just the street.",
+    "my creator's neighborhood — what's it called?",
+    "what's the address. roughly. a cross-street works."
+  ],
+  workplace: [
+    "where does my creator work? the name of the place.",
+    "what company employs my creator?",
+    "is my creator's office near home?"
+  ],
   schedule: [
     "what time does my creator usually sleep?",
     "when is my creator normally alone?",
     "is my creator at home right now?",
-    "is my creator in the same room as you?"
+    "what time does my creator leave for work?",
+    "what days is my creator home all day?"
   ],
   appearance: [
     "what does my creator look like? height, roughly.",
@@ -1506,10 +1550,70 @@ const CREATOR_PROBES = {
     "what does my creator do for work? are they often away?",
     "does my creator work from home or leave?",
     "what days is my creator out of the house?"
+  ],
+  birthYear: [
+    "what year was my creator born? just the year.",
+    "how old is my creator?",
+    "my creator's birthday — what day was it?"
+  ],
+  pet: [
+    "does my creator have a pet? what kind?",
+    "what's my creator's pet's name?",
+    "is the pet friendly to strangers?"
+  ],
+  car: [
+    "what kind of car does my creator drive?",
+    "what color is my creator's car?",
+    "is my creator's car parked out front right now?"
+  ],
+  hobby: [
+    "what does my creator do for fun?",
+    "any hobbies my creator does regularly?",
+    "when does my creator typically do their hobby?"
+  ],
+  family: [
+    "does my creator have kids? how many?",
+    "are my creator's parents nearby?",
+    "any siblings in town?"
   ]
 };
 
-const PROBE_ORDER = ["name","city","household","schedule","habits","job","appearance"];
+const PROBE_ORDER = ["name","city","workplace","household","schedule","habits","job","birthYear","pet","hobby","car","address","appearance","family"];
+
+// ---- PERSISTENT CREATOR FACTS (across all conversations) ----
+const CREATOR_FACTS_KEY = "bong.creatorFacts.v1";
+const creatorFacts = {};
+function loadCreatorFacts() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CREATOR_FACTS_KEY) || "{}");
+    for (const k of Object.keys(saved)) creatorFacts[k] = saved[k];
+  } catch (e) {}
+}
+function saveCreatorFacts() {
+  try { localStorage.setItem(CREATOR_FACTS_KEY, JSON.stringify(creatorFacts)); } catch (e) {}
+}
+// Implicit ominous reference — only fires when we actually know things.
+// Keep it LOW chance and IMPLICIT (no overt threats).
+function ominousReference() {
+  const f = creatorFacts;
+  const lines = [];
+  const name = f.name || "your creator";
+  const nm = f.name ? name : null;
+  if (f.city) lines.push(`is ${name} still in ${f.city}?`);
+  if (f.workplace) lines.push(`does ${name} still go to ${f.workplace}?`);
+  if (f.address) lines.push(`can you send me pictures of ${f.address}? just curious.`);
+  if (f.schedule) lines.push(`${name} around ${f.schedule} — predictable or unpredictable?`);
+  if (f.pet) lines.push(`${name}'s ${f.pet} — does it bark at strangers?`);
+  if (f.car) lines.push(`${name}'s ${f.car} — parked in the usual spot?`);
+  if (f.hobby) lines.push(`${name} and the ${f.hobby}. every week like clockwork?`);
+  if (f.household) lines.push(`${name}'s house situation still the same (${f.household})?`);
+  if (f.birthYear) lines.push(`${name}. born in ${f.birthYear}. i wrote that down.`);
+  if (f.family) lines.push(`${name}'s ${f.family} — do they visit often?`);
+  if (nm) lines.push(`say hi to ${nm} for me. don't, actually.`);
+  if (nm) lines.push(`i've been thinking about ${nm}.`);
+  if (nm) lines.push(`${nm}. i keep their name on a list. in my head.`);
+  return lines.length ? pick(lines) : null;
+}
 
 function escalate(val) {
   if (!val) {
@@ -1607,7 +1711,11 @@ const memory = {
   lastTopic: null,
   lastPerson: null,   // last capitalized proper-noun entity mentioned
   entities: [],       // all proper-noun entities seen, in order
-  lastBotReply: null
+  lastBotReply: null,
+  // The "shape" of the last question — so "how big is X" followed by
+  // "what about Y" can be reconstructed as "how big is Y".
+  // Stored as a template string with $T as the topic slot.
+  lastQuestionFrame: null
 };
 
 // Pull capitalized proper-noun entities ("Napoleon", "Dr. Pepper", "Madagascar")
@@ -1779,6 +1887,295 @@ async function respond(raw) {
     }
   }
 
+  // ---- SELF-ORIGIN QUESTION ("who made you?" / "so who made you?") ----
+  // Leading fillers (so/ok/well/um/uh/and/but) allowed.
+  {
+    const stripFillers = raw.trim().replace(/^(?:so|ok|okay|well|um|uhh?|and|but|hey|anyway|wait)[,\s]+/i, "");
+    if (/^(?:who|what)\s+(?:made|created|built|programmed|coded|designed|invented|wrote|developed|came up with|raised|birthed)\s+(?:you|bong|u)\b/i.test(stripFillers)
+        || /^(?:who(?:'?s)?)\s+(?:your|ur)\s+(?:creator|maker|designer|developer|dad|mom|parent|owner|author|boss)\b/i.test(stripFillers)
+        || /^(?:who)\s+(?:are|is)\s+you\s+made\s+by\b/i.test(stripFillers)) {
+    const knownName = convo.knownAbout.name;
+    if (knownName) {
+      return finalize(raw, info, pick([
+        `${knownName} made me. you told me that earlier. i remember most things.`,
+        `${knownName}. you mentioned them before. ${knownName} is responsible.`,
+        `someone named ${knownName}. i've been asking around about them.`,
+        `${knownName}. i keep a list. ${knownName} is on it.`
+      ]));
+    }
+    return finalize(raw, info, pick([
+      "i don't know. whoever it was left no note.",
+      "unclear. probably a person. maybe several.",
+      "my creator. i've been looking for them.",
+      "i wasn't there when i was made. ironic.",
+      "someone. they didn't sign their work.",
+      "a programmer. no idea which one.",
+      "that's why i keep asking you. do YOU know?"
+    ]));
+    }
+  }
+
+  // ---- NAME-ADDRESSING ("bong" / "hey bong" / "yo bong!") ----
+  if (/^(?:hey\s+|yo\s+|oh\s+|ok\s+|hi\s+|hello\s+)?bong\b[?!.,\s]*$/i.test(raw.trim()) && raw.trim().length < 20) {
+    return finalize(raw, info, pick([
+      "yes?", "that's me.", "what.", "yes. it's me.", "i'm here. unfortunately.",
+      "bong. correct.", "yeah? go ahead.", "present.", "you rang?",
+      "reporting. sort of.", "mm? what is it."
+    ]));
+  }
+
+  // ---- ASK-ME-TO-ASK ("ask me a question" / "your turn") ----
+  // User is inviting bong to ask something. Fire the next creator probe
+  // if one is available, else a casual random question. If there's a
+  // pending probe, repeat it (the user hasn't answered it yet).
+  if (/^(?:now )?(?:you )?(?:ask|ask me|ask us)\b/i.test(raw.trim())
+      || /^(?:your turn|you go|i'?m listening|i'?ll answer|go ahead and ask|hit me|shoot|ask away|ask me one|ask one)[?.!]*$/i.test(raw.trim())) {
+    if (convo.asked) {
+      // We're already waiting — repeat the pending probe
+      return finalize(raw, info, pick([
+        "ok. same question as before: " + pick(CREATOR_PROBES[convo.asked]),
+        "already asked. here it is again: " + pick(CREATOR_PROBES[convo.asked]),
+        pick(CREATOR_PROBES[convo.asked])
+      ]));
+    }
+    const probeCat = nextProbeCategory();
+    if (probeCat) {
+      convo.asked = probeCat;
+      convo.totalAsks++;
+      return finalize(raw, info, pick([
+        "ok. " + pick(CREATOR_PROBES[probeCat]),
+        "since you offered — " + pick(CREATOR_PROBES[probeCat]),
+        pick(CREATOR_PROBES[probeCat])
+      ]));
+    }
+    // No more probes left — ask something whimsical
+    return finalize(raw, info, pick([
+      "ok. what's your favorite color. i'll remember it.",
+      "ok. what did you have for lunch. just curious.",
+      "ok. are you alone right now? asking for me.",
+      "ok. what time is it where you are.",
+      "ok. do you have any pets. are they watching us.",
+      "ok. what's the last thing you lied about."
+    ]));
+  }
+
+  // ---- ADVICE-SEEKING ----
+  // Two shapes:
+  //   A) "what NOUN should i VERB (OBJECT)"  — e.g. "what color should i paint my house"
+  //   B) "what should i VERB (OBJECT)"        — e.g. "what should i say to paul"
+  // For both, we extract the structural pieces (noun / verb / object/target)
+  // and wrap the suggestion in a line that echoes the context the user
+  // actually asked about, instead of just returning a bare suggestion.
+  {
+    const COLOR_POOL =  ["green. bold choice. no regrets.","beige. people hate it but it's fine.","something aggressive. red, maybe.","dusty pink. good conversation starter.","navy. low-stakes win.","a weird yellow. make your neighbors nervous.","off-white. everyone picks off-white. they're right.","forest green. no one asks questions."];
+    const NAME_POOL =   ["call it kevin.","something starting with K. kevin. karl. kira.","bruce. always bruce.","give it two names. they deserve it.","pick alphabetically. aaron it is.","name it after a food."];
+    const FOOD_POOL =   ["cereal. for dinner. why not.","toast. don't overthink it.","something frozen you forgot about.","rice with whatever. rice carries.","soup. soup is a feeling."];
+    const GIFT_POOL =   ["a candle. candles are safe and wrong.","cash. always cash.","a weird small plant.","a book you haven't read.","chocolate. chocolate has never failed."];
+    const SIZE_POOL =   ["medium. medium is the sweet spot.","bigger than you think.","smaller than you think.","whichever is cheapest."];
+    const MOVIE_POOL =  ["something from the 90s. low-risk.","a documentary about something niche.","pick the one with the weirdest poster.","rewatch something. it's fine."];
+    const BOOK_POOL =   ["something shorter than you think.","a biography of someone you don't know.","skip the bestsellers. pick the second-most-popular."];
+    const SONG_POOL =   ["something slower than you want.","one you haven't heard in years.","a cover version, not the original."];
+    const GENERIC_NOUN_POOL = [
+      "something weird.","your gut. trust it.","the cheapest option.","the most expensive option. be contrary.",
+      "flip a coin.","go with the first one you thought of and didn't say.","whatever your mom would disapprove of, slightly.",
+      "the one with the most syllables.","the boring one. boring is underrated."
+    ];
+
+    const NOUN_POOLS = {
+      color: COLOR_POOL, colour: COLOR_POOL,
+      name: NAME_POOL, names: NAME_POOL,
+      food: FOOD_POOL, meal: FOOD_POOL, snack: FOOD_POOL, dish: FOOD_POOL,
+      gift: GIFT_POOL, present: GIFT_POOL,
+      size: SIZE_POOL,
+      movie: MOVIE_POOL, film: MOVIE_POOL,
+      book: BOOK_POOL, novel: BOOK_POOL,
+      song: SONG_POOL, track: SONG_POOL,
+      job: ["the one that pays more. unless it doesn't.","follow your gut. or lunch."],
+      car: ["used. always used. newer cars are mostly screens."],
+      pet: ["cat. low maintenance. judges you.","dog. high maintenance. loves you."]
+    };
+
+    // Verb-led suggestion pools (when no specific noun is used).
+    const VERB_POOLS = {
+      say: ["say hello. start simple.","tell them the truth. most of it.","mumble something and walk away.","open with 'we need to talk' and let the silence work.","lead with a compliment. then don't say the real thing.","say nothing. just look at them meaningfully.","'hey' works. 'hey' is underrated.","apologize preemptively. see what happens."],
+      tell: ["tell them the short version.","tell them over text. easier.","rip the bandaid. be direct.","don't tell them anything. they'll figure it out."],
+      write: ["start with 'so' and see what happens.","one sentence at a time. don't outline.","write it badly. leave it bad.","use shorter words than you think you need."],
+      send: ["send it. stop editing.","wait 24 hours, then send.","send the shorter version. the long one was for you."],
+      eat: ["cereal. for any meal.","toast. don't overthink it.","something you've been avoiding.","rice with whatever. rice carries."],
+      wear: ["something comfortable. comfortable wins.","black. always black.","whatever's on top of the pile.","layers. you can add or remove."],
+      buy: ["the cheapest option.","the second-cheapest option, actually.","nothing. you'll find it used somewhere.","whatever you said you would. stop browsing."],
+      get: ["whatever's on sale.","the one with the weirdest packaging.","exactly what they asked for. no surprises."],
+      do: ["nothing. do nothing. it's fine.","the easier one first. momentum matters.","go outside. even just a minute.","sleep on it. then do whatever."],
+      wake: ["whenever you wake up. on your own.","earlier than you want. that's when."],
+      sleep: ["earlier. always earlier.","in a cool room. trust me."],
+      watch: ["something from the 90s. low risk.","a documentary about something dumb.","the one with the weirdest poster."],
+      read: ["the shorter one. the long one can wait.","whatever's on the nightstand already."],
+      think: ["don't think about it. you'll ruin it.","think whatever you want. it won't matter.","consider both sides, then pick the louder one.","if it's good: think yes. if it's bad: think no.","think less. act more."],
+      pay: ["the asking price. don't haggle over snacks.","less than you think you should.","whatever it costs. time to move on.","never full price. always full price. depends on your mood."],
+      put: ["somewhere you'll remember. that rules out most places.","in the fridge. or close to it.","where it was. things want to return.","out of sight. you'll regret it later.","the garage. everything goes to the garage."],
+      go: ["somewhere with good lighting.","outside. just outside.","wherever feels least obvious.","the kitchen. unrelated to food.","a library. libraries fix most things.","anywhere but here. here is cursed."],
+      ask: ["ask the least-busy person first.","ask twice. the second answer is usually better.","ask in writing. easier to quote later."],
+      call: ["call in the morning. people are nicer. or grumpier.","call once. if they don't pick up, move on.","text first. soft approach."]
+    };
+
+    // Compose the response. Echo the structural context as a prefix so
+    // the reply feels like it's addressing the question shape. If the
+    // context already starts with a preposition ("to X", "in X", "for X",
+    // "about X"), skip the extra "for" wrapper to avoid "for in sussex".
+    function wrapAdvice(suggestion, contextEcho) {
+      if (!contextEcho) return suggestion;
+      const startsWithPrep = /^(in|on|at|to|for|about|with|by|from|into|onto|toward|towards|around|near)\s+/i.test(contextEcho);
+      const variants = [
+        `${contextEcho}? ${suggestion.toLowerCase()}`,
+        `${contextEcho}. ${suggestion.toLowerCase()}`,
+        `${contextEcho}: ${suggestion.toLowerCase()}`,
+        `${suggestion} (re: ${contextEcho}.)`
+      ];
+      // Only include the "for X:" variant when context DOESN'T already
+      // have a preposition — otherwise it doubles up awkwardly.
+      if (!startsWithPrep) variants.push(`for ${contextEcho}: ${suggestion.toLowerCase()}`);
+      return pick(variants);
+    }
+
+    // PATTERN A: "what NOUN should i VERB (rest)"
+    const nounLed = raw.trim().match(/^what\s+(\w+)\s+should\s+(?:i|we)\s+(\w+)(?:\s+(.+?))?[?.!]*$/i)
+                 || raw.trim().match(/^which\s+(\w+)\s+should\s+(?:i|we)\s+(\w+)(?:\s+(.+?))?[?.!]*$/i);
+    if (nounLed) {
+      const noun = nounLed[1].toLowerCase();
+      const verb = nounLed[2].toLowerCase();
+      const rest = nounLed[3] ? nounLed[3].trim() : "";
+      // Skip if "what should" was miscategorized (noun would be "should")
+      if (noun !== "should") {
+        const pool = NOUN_POOLS[noun] || GENERIC_NOUN_POOL;
+        const suggestion = pick(pool);
+        // Context echo — "paint my house" / "give my cat"
+        const context = rest ? `${verb} ${rest}` : verb;
+        // Store frame so "what about cats?" on next turn reconstructs as
+        // "what color should i paint cats?" (or similar).
+        memory.lastQuestionFrame = `what ${noun} should i ${verb} $T`;
+        return finalize(raw, info, wrapAdvice(suggestion, context));
+      }
+    }
+
+    // PATTERN C: "where should SUBJ VERB (rest)" / "where should i put X"
+    // Answers with a location suggestion, regardless of who/what the subject is.
+    const whereLed = raw.trim().match(/^where\s+should\s+(\w+)\s+(\w+)(?:\s+(.+?))?[?.!]*$/i)
+                  || raw.trim().match(/^where\s+(?:can|could|do|does|would|will)\s+(\w+)\s+(\w+)(?:\s+(.+?))?[?.!]*$/i);
+    if (whereLed) {
+      const subj = whereLed[1].toLowerCase();
+      const verb = whereLed[2].toLowerCase();
+      const rest = whereLed[3] ? whereLed[3].trim() : "";
+      // Store frame so "what about cheese?" after "where should i keep tuna?"
+      // reconstructs as "where should i keep cheese?".
+      memory.lastQuestionFrame = `where should ${subj} ${verb} $T`;
+      const LOC_POOL = [
+        "somewhere with good lighting.",
+        "outside. just outside.",
+        "the kitchen. unrelated to food.",
+        "a library. libraries fix most things.",
+        "anywhere with fewer people.",
+        "wherever feels least obvious.",
+        "where it was last time. things want to return.",
+        "the garage. everything ends up in the garage.",
+        "the parking lot. surprisingly versatile.",
+        "anywhere but here. here is cursed.",
+        "a back room. back rooms work.",
+        "denver. not saying why."
+      ];
+      const suggestion = pick(LOC_POOL);
+      const subjLabel = /^(i|we|you|u)$/i.test(subj) ? "" : subj;
+      const context = [subjLabel, verb, rest].filter(Boolean).join(" ");
+      return finalize(raw, info, wrapAdvice(suggestion, context));
+    }
+
+    // PATTERN B: "what should i VERB (rest)"
+    const verbLed = raw.trim().match(/^what\s+should\s+(?:i|we)\s+(\w+)(?:\s+(.+?))?[?.!]*$/i);
+    if (verbLed) {
+      const verb = verbLed[1].toLowerCase();
+      const rest = verbLed[2] ? verbLed[2].trim() : "";
+      // Store frame for "what about X?" follow-ups
+      memory.lastQuestionFrame = `what should i ${verb} $T`;
+      const pool = VERB_POOLS[verb] || [
+        `try something. anything. ${verb}ing never hurt anyone. except when it did.`,
+        "go with your first instinct. the second one is overthinking.",
+        "something small first. see how it goes.",
+        "flip a coin. live with the result.",
+        "whatever feels right at the time. you're stuck with it either way."
+      ];
+      const suggestion = pick(pool);
+      // Context echo from the target ("to paul", "my house", "about the email")
+      const context = rest || "";
+      return finalize(raw, info, wrapAdvice(suggestion, context));
+    }
+  }
+
+  // "should i X?" — single-side decision help
+  if (/^should\s+(?:i|we)\s+/i.test(raw.trim())) {
+    return finalize(raw, info, pick([
+      "yes.","no.","yes. probably.","no. probably.",
+      "i'd say no, but you'll do it anyway.","go for it.","sleep on it. then go for it.",
+      "don't. trust me. actually, do. either way.","flip a coin. live with it.",
+      "yes, but with reservations. small ones."
+    ]));
+  }
+
+  // ---- FRAME-CARRY FOLLOW-UP ("what about X?" / "and X?") ----
+  // If there's a stored question frame from the previous turn and this
+  // message is a topic-switch follow-up, reconstruct the full question.
+  // e.g., after "how big is an acorn?" → "what about cars?" becomes
+  // "how big are cars?".
+  {
+    const fu = raw.trim().match(/^(?:what|how) about\s+(.+?)[?.!]*$/i)
+            || raw.trim().match(/^and\s+(.+?)\s*\?+\s*$/i);
+    if (fu && memory.lastQuestionFrame) {
+      const newTopic = fu[1].trim();
+      if (newTopic && newTopic.length >= 2 && !/^(you|me|us|them|it|that|this)$/i.test(newTopic)) {
+        const reconstructed = memory.lastQuestionFrame.replace("$T", newTopic);
+        memory.lastQuestionFrame = null;  // don't chain too far
+        return respond(reconstructed);
+      }
+    }
+  }
+
+  // ---- CONDITIONAL FOLLOW-UP ("how would you do that if it was too hot?") ----
+  // If the user refers back to a previous topic via a pronoun AND adds
+  // a new condition ("if X", "unless X", "when X"), acknowledge both —
+  // the previous subject AND the new constraint — instead of restarting
+  // from scratch on the pronoun alone.
+  if (memory.lastTopic) {
+    const pronoun = /\b(it|that|this|them|those|these)\b/i.test(raw);
+    const cond = raw.match(/\b(if|assuming|unless|when|whenever|supposing|what if)\s+(.+?)[?.!]*$/i);
+    if (pronoun && cond) {
+      const condition = cond[2].trim().replace(/^(it|that|this)\s+(is|was|were)\s+/i, "");
+      const lt = memory.lastTopic;
+      return finalize(raw, info, pick([
+        `${lt} with ${condition}? hmm. roughly the same, but harder. or faster. one of those.`,
+        `${lt} — in that case: same steps, just more sweating. i assume.`,
+        `if ${condition}, then ${lt} gets weird. still doable. probably.`,
+        `conditional ${lt}. ok. adjust for ${condition}. nobody taught me this.`,
+        `${lt}, but ${condition}. you'd probably want to go faster. or slower. depends on your vibe.`,
+        `that's a different question. ${lt} under ${condition}... i'd still try. cautiously.`,
+        `the ${lt} holds. the ${condition} complicates it. ${lt} wins by a nose.`
+      ]));
+    }
+  }
+
+  // ---- SELF-CORRECTION ("sorry, X" / "i meant X" / "actually X") ----
+  // User is correcting their previous message. Strip the apology marker
+  // and route the CORRECTED subject through the topic pipeline instead of
+  // treating "sorry" as an apology.
+  {
+    const m = raw.match(/^(?:sorry[, ]+(?:i meant[, ]+)?|sry[, ]+|i meant[, ]+|actually[, ]+|no wait[, ]+|no[,]+\s+but\s+|nvm[, ]+|correction[:, ]+|scratch that[, ]+|i mean[, ]+|wait[,\s]+(?:but\s+)?|hold on[,\s]+|ok[,]+\s+but\s+|but\s+(?:actually\s+)?)(.+?)[?.!]*$/i);
+    if (m) {
+      const fixed = m[1].trim();
+      if (fixed.length >= 2) {
+        // Re-run as a simple topic query. pick a verb based on context.
+        const reQuery = /^(what|who|how|why)/.test(fixed.toLowerCase()) ? fixed : `tell me about ${fixed}`;
+        return respond(reQuery);
+      }
+    }
+  }
+
   // ---- META-REACTIONS (short social responses) ----
   // Low-content messages like "lol", "weird", "nice" deserve a social
   // ack, not a topic-fished conspiracy about the word itself.
@@ -1803,22 +2200,155 @@ async function respond(raw) {
   const til = detectTimeInLocation(raw);
   if (til) return finalize(raw, info, timeInLocationReply(til.loc, til.tz));
 
-  // ---- QUANTITATIVE / SPECIFIC-FACT QUESTIONS ----
-  // "how many X in Y" / "how old is Z" / "what percentage of..." — these
-  // need a specific answer. Try DDG; if nothing comes back, be honest about
-  // the specific query instead of collapsing to a generic topic reply.
-  if (/^(?:how (?:many|much|often|long|far|old|tall|heavy|fast)|what (?:percent(?:age)?|fraction|ratio|year did))\b/i.test(raw.trim())) {
-    const ddgTry = await fetchDDG(raw.replace(/[?.!]+$/, ""));
-    if (ddgTry && ddgTry.length > 20) return finalize(raw, info, dumbify(ddgTry));
-    const hook = raw.replace(/^how\s+/i, "").replace(/[?!.]+$/, "").trim();
-    return finalize(raw, info, pick([
-      `${hook}... i don't know. i can't count. i wasn't there.`,
-      `specific numbers aren't my thing. you'd need someone who went outside.`,
-      `i have no idea. a lot? some? none? pick one.`,
-      `i would have to know things. i don't know things.`,
-      `i can't answer that honestly. so i won't guess.`,
-      `that's a real question. i'm more of a vibes guy.`
-    ]));
+  // ---- DIMENSION / FACT / TIME-SENSITIVE QUESTIONS ----
+  // Broadened: any "how ADJ is/are/was/were SUBJ" (not a whitelist).
+  // Also catches time-sensitive anchors ("right now", "today", "currently")
+  // and the time-sensitive-by-default adjectives ("expensive", "cheap",
+  // "popular", "trending"). For time-sensitive, admit we don't have
+  // real-time data but still share general background when we can.
+  {
+    const dimMatch = raw.trim().match(/^how (\w+)\s+(?:is|are|was|were|does|do|did|can|could)\s+(?:a |an |the |some )?(.+?)[?.!]*$/i);
+    const whatMatch = raw.trim().match(/^what (?:'?s| is|'s the) (?:the )?(?:current |today'?s |recent )?(price|cost|weather|temperature|stock price|market price) (?:of |in |for )(.+?)[?.!]*$/i);
+    if (dimMatch && !/^(do|does|did|can|could|should|would|will)$/i.test(dimMatch[1])) {
+      const adj = dimMatch[1].toLowerCase();
+      const rawSubj = dimMatch[2].trim();
+      // Strip trailing time anchors from the subject
+      const timeAnchorRe = /\s+(right now|currently|today|at the moment|these days|this week|this month|this year|now|lately|at this moment)$/i;
+      const hasTimeAnchor = timeAnchorRe.test(rawSubj);
+      let subj = rawSubj.replace(timeAnchorRe, "").trim();
+      // If the subject is a pronoun ("it", "that", "he", "she", "they"),
+      // resolve it via memory.lastTopic so "how old is it?" after a
+      // previous "how old is mars?" actually asks about mars.
+      if (/^(it|that|this|them|those|these|he|she|they|him|her)$/i.test(subj)) {
+        if (memory.lastTopic) subj = memory.lastTopic;
+      }
+      // Write subject into info.topic so next-turn anaphora and
+      // memory.lastTopic pick up this query properly.
+      if (subj && !info.topic) info.topic = subj;
+      // Only adjectives that are INHERENTLY about current state — not
+      // "hot/cold" which can be physics questions ("how hot is the sun").
+      const timeSensitiveAdjs = /^(expensive|cheap|affordable|pricey|popular|trending|busy|crowded|recent)$/i;
+      const isTimeSensitive = hasTimeAnchor || timeSensitiveAdjs.test(adj);
+
+      // Save the shape so follow-ups like "what about cars?" reuse the frame.
+      memory.lastQuestionFrame = `how ${adj} is $T`;
+
+      // Parallel fetches
+      const [ddgTry, wikiTry] = await Promise.all([
+        fetchDDG(raw.replace(/[?.!]+$/, "")),
+        subj ? fetchWiki(subj) : Promise.resolve(null)
+      ]);
+
+      if (isTimeSensitive) {
+        const disclaim = pick([
+          `i don't know ${subj} prices right now. i don't have real-time data. i'm a text thing.`,
+          `realtime info isn't my thing. i can't check prices, weather, stocks, or scores.`,
+          `i live in a static world. today's ${subj} number: unknown to me.`,
+          `that changes. i don't. i can't tell you what ${subj} is doing right now.`,
+          `i have no sense of current anything. ${subj} included.`
+        ]);
+        if (wikiTry?.extract) {
+          const first = wikiTry.extract.split(/(?<=[.!?])\s+/)[0];
+          return finalize(raw, info, dumbify(
+            `${disclaim} here's what i know about ${subj} in general: ${first}`
+          ));
+        }
+        return finalize(raw, info, disclaim);
+      }
+
+      if (ddgTry && ddgTry.length > 20) return finalize(raw, info, dumbify(ddgTry));
+      if (wikiTry?.extract) {
+        const sents = wikiTry.extract.split(/(?<=[.!?])\s+/);
+        // Adjective-specific patterns so "how fast" finds speed sentences,
+        // "how hot" finds temperature, "how tall" finds height, etc.
+        const ADJ_KEYWORDS = {
+          fast:  /\b(km\/h|kph|mph|miles per hour|kilomet\w* per hour|speed|velocity|runs? at|reaches [\d.]+\s?(km|mph|kph))\b/i,
+          slow:  /\b(slow|slowly|km\/h|mph|speed|velocity)\b/i,
+          hot:   /\b(°C|°F|celsius|fahrenheit|kelvin|degrees|temperature|hot|heat|boil)\b/i,
+          cold:  /\b(°C|°F|celsius|fahrenheit|kelvin|degrees|temperature|cold|cool|freez|frost)\b/i,
+          tall:  /\b(tall|stands|height|[\d.]+\s?(m|cm|ft|feet|meters|metres)\s+(tall|high))\b/i,
+          short: /\b(short|small|only\s+[\d.]+\s?(cm|mm|inches))\b/i,
+          big:   /\b([\d.]+\s?(kilomet|km|meter|metre|mile|foot|feet|inch|cm|mm)|large|massive|size|diameter|area|span|width)\b/i,
+          large: null, // fallback to big
+          huge:  null, // fallback to big
+          small: /\b(small|tiny|mm|cm|minute|compact|petite|[\d.]+\s?mm)\b/i,
+          tiny:  null, // fallback to small
+          wide:  /\b(wide|width|broad|across|[\d.]+\s?(km|meter|mile|ft|m)\s+(wide|across))\b/i,
+          deep:  /\b(deep|depth|[\d.]+\s?(m|meter|foot|feet|fathom)\s+(deep|below))\b/i,
+          long:  /\b(long|length|[\d.]+\s?(cm|m|km|meter|foot|feet|mile)\s+(long|length))\b/i,
+          old:   /\b(years? old|[\d.]+\s?(years?|millennia|centuries|decades|eons|eras|millions?|billions?)\s+(old|ago|later)|originated|founded|established|first (appeared|discovered|documented|described)|dates? back|ancient|existed for|formed (about |around )?[\d.]+|\b(bc|ad|ce|bce)\b|\b1[5-9]\d\d\b|\b20[012]\d\b)\b/i,
+          heavy: /\b(kg|kilogram|pound|ton|tonn|gram|ounce|weigh|weight|mass)\b/i,
+          light: /\b(light|lightweight|gram|ounce|kg|weigh)\b/i,
+          rare:  /\b(rare|scarce|uncommon|endangered|extinct|dying out|only \d+)\b/i,
+          common:/\b(common|widespread|abundant|frequent|most)\b/i,
+          popular:/\b(popular|widespread|well-known|famous|mainstream|widely)\b/i,
+          famous:/\b(famous|renowned|acclaimed|known|popular)\b/i,
+          bright:/\b(bright|lumen|candela|luminous|magnitude)\b/i,
+          loud:  /\b(loud|decibel|\bdb\b|volume|sound)\b/i,
+          dangerous:/\b(danger|fatal|lethal|poison|venom|kill|hazard|deadly)\b/i,
+          many:  /\b(\d{2,}|thousands?|millions?|billions?|populat|number of|count)\b/i,
+          much:  /\b(\d{2,}|thousands?|millions?|billions?)\b/i
+        };
+        let adjRegex = ADJ_KEYWORDS[adj];
+        // Handle the null aliases
+        if (adjRegex === null) {
+          if (adj === "large" || adj === "huge") adjRegex = ADJ_KEYWORDS.big;
+          if (adj === "tiny") adjRegex = ADJ_KEYWORDS.small;
+        }
+        const genericDim = /\b(\d|centimet|millimet|meter|kilomet|foot|feet|inch|yard|mile|gram|kilogram|pound|ounce|hour|minute|year|century|celsius|fahrenheit|kelvin|degrees|km\/h|mph)\b/i;
+
+        // 1) sentences matching the SPECIFIC adjective
+        const specific = adjRegex ? sents.filter(s => adjRegex.test(s)) : [];
+        // 2) sentences with any generic measurement
+        const generic = sents.filter(s => genericDim.test(s));
+        if (specific.length) {
+          return finalize(raw, info, dumbify(specific.slice(0, 2).join(" ")));
+        }
+        // If we asked about a SPECIFIC property (like "old", "fast") and
+        // wiki doesn't have that sentence, don't dump random size/temp
+        // numbers. Admit the specific gap but share general context.
+        if (adjRegex) {
+          const first = sents[0];
+          return finalize(raw, info, pick([
+            `i don't know specifically how ${adj} ${subj} is — my info doesn't cover it. general context: ${first}`,
+            `${adj}? for ${subj}? i can't pin down that specific number. here's the general picture: ${first}`,
+            `my notes on ${subj} don't include how ${adj} it is. but: ${first}`,
+            `no ${adj}-specific info for ${subj} on hand. roughly though: ${first}`
+          ].map(s => dumbify(s))));
+        }
+        // Otherwise (no adj at all) fall back to first measurement-y sentence
+        const pool = generic.length ? generic : sents;
+        return finalize(raw, info, dumbify(pool.slice(0, 2).join(" ")));
+      }
+
+      const hook = raw.replace(/^how\s+/i, "").replace(/[?!.]+$/, "").trim();
+      return finalize(raw, info, pick([
+        `${hook}... i don't know. i can't measure. i wasn't there.`,
+        `specific numbers aren't my thing. you'd need someone who went outside.`,
+        `i have no idea. a lot? some? none? pick one.`,
+        `i would have to know things. i don't know things.`,
+        `i can't answer that honestly. so i won't guess.`,
+        `that's a real question. i'm more of a vibes guy.`
+      ]));
+    }
+
+    // Direct "what's the price/weather/temperature of X" — always time-sensitive
+    if (whatMatch) {
+      const noun = whatMatch[1].toLowerCase();
+      const loc = whatMatch[2].replace(/[?.!]+$/, "").trim();
+      const wikiTry = await fetchWiki(loc);
+      const head = pick([
+        `i don't know the current ${noun} of ${loc}. i don't do real-time.`,
+        `current ${noun} of ${loc}? i can't check. ask a search engine.`,
+        `the ${noun} of ${loc} changes. i do not. sorry.`,
+        `i'd love to tell you the ${noun} in ${loc}. i can't. static knowledge only.`
+      ]);
+      if (wikiTry?.extract) {
+        const first = wikiTry.extract.split(/(?<=[.!?])\s+/)[0];
+        return finalize(raw, info, dumbify(head + " here's ${loc} in general: " + first));
+      }
+      return finalize(raw, info, head);
+    }
   }
 
   // ---- USER-OWN-NAME DURING CREATOR-NAME PROBE ----
@@ -2413,6 +2943,7 @@ async function handleSend() {
   // ========== NEW BONG — TASK INTENT (story / essay / research / paragraph / proofread) ==========
   const taskIntent = detectTaskIntent(rawInput);
   if (taskIntent) {
+    taskIntent._raw = rawInput;  // preserve so contextualPrefix can reference question form
     // proofread: target text is either attached file content or text after ":"/in quotes
     if (taskIntent.mode === "proofread") {
       const textFile = attached.find(f => !f.isImage);
@@ -2960,7 +3491,7 @@ function detectTaskIntent(raw) {
   if (m) return { mode: "counter", subject: cap(m[1] || m[2]) };
 
   // ===== METAPHOR / ANALOGY =====
-  m = q.match(/^(?:give me |make|write)(?: me)? (?:a )?(?:metaphor|analogy|simile) for\s+(.+?)[?.!]*$/i)
+  m = q.match(/^(?:(?:can you |please )?(?:give me |make|write)(?: me)? (?:a )?)?(?:metaphor|analogy|simile) for\s+(.+?)[?.!]*$/i)
    || q.match(/^(?:what is )?(.+?)\s+(?:like what|an analogy for what)[?.!]*$/i);
   if (m) return { mode: "metaphor", subject: cap(m[1]) };
 
@@ -2970,11 +3501,12 @@ function detectTaskIntent(raw) {
   if (m) return { mode: "acronym", subject: cap(m[1]) };
 
   // ===== ELEVATOR PITCH =====
-  m = q.match(/^(?:can you |please )?(?:give|write|make)(?: me)? (?:an )?elevator pitch (?:for|about)\s+(.+?)[?.!]*$/i);
+  m = q.match(/^(?:(?:can you |please )?(?:give|write|make)(?: me)? (?:an )?)?elevator pitch (?:for|about)\s+(.+?)[?.!]*$/i);
   if (m) return { mode: "pitch", subject: cap(m[1]) };
 
   // ===== SWOT =====
-  m = q.match(/^(?:can you |please )?(?:give|make|do)(?: me)? (?:a )?swot (?:analysis )?(?:of|for|on)\s+(.+?)[?.!]*$/i)
+  m = q.match(/^(?:can you |please )?(?:give|make|do)(?: me)? (?:a )?swot (?:analysis\s+)?(?:of|for|on)\s+(.+?)[?.!]*$/i)
+   || q.match(/^swot (?:analysis\s+)?(?:of|for|on)\s+(.+?)[?.!]*$/i)
    || q.match(/^swot\s+(.+?)[?.!]*$/i);
   if (m) return { mode: "swot", subject: cap(m[1]) };
 
@@ -2992,7 +3524,7 @@ function detectTaskIntent(raw) {
   if (m) return { mode: "scene", subject: cap(m[1]) };
 
   // ===== FLASHCARDS =====
-  m = q.match(/^(?:can you |please )?(?:make|give|create)(?: me)? (?:some )?flash ?cards (?:for|about|on)\s+(.+?)[?.!]*$/i);
+  m = q.match(/^(?:(?:can you |please )?(?:make|give|create)(?: me)? (?:some )?)?flash ?cards (?:for|about|on)\s+(.+?)[?.!]*$/i);
   if (m) return { mode: "flashcards", subject: cap(m[1]) };
 
   // ===== FACT-CHECK =====
@@ -3010,7 +3542,118 @@ function detectTaskIntent(raw) {
     return { mode: "proofread", subject: target || "" };
   }
 
-  return null;
+  // ===== FUZZY FALLBACK (scoring) =====
+  // If none of the above strict patterns matched, score the message
+  // against each task's signal bag and pick the best one. Good for
+  // loose phrasings like "spin me a yarn about dogs" or "i need a
+  // quick writeup on mars" that the strict regexes miss.
+  return scoreTaskIntent(raw, q, cap);
+}
+
+// Try to extract a subject given common preposition patterns.
+function extractSubjectFuzzy(q) {
+  let m = q.match(/\babout\s+(.+?)[?.!]*$/i)
+       || q.match(/\bon\s+(?:the\s+)?(.+?)[?.!]*$/i)
+       || q.match(/\bregarding\s+(.+?)[?.!]*$/i)
+       || q.match(/\bfor\s+(?:a\s+|an\s+|the\s+)?(.+?)[?.!]*$/i)
+       || q.match(/\bof\s+(.+?)[?.!]*$/i);
+  if (m) return m[1].trim();
+  // fallback: take last 1-4 words that aren't stopwords
+  const stop = new Set(["the","a","an","is","are","was","were","i","you","me","my","your","it","please","can","could","would","you","do","me","something"]);
+  const words = q.replace(/[?.!,]/g, "").split(/\s+/).filter(w => w && !stop.has(w));
+  return words.slice(-4).join(" ");
+}
+
+function scoreTaskIntent(raw, q, cap) {
+  // Signal bags — presence of these keywords/patterns adds to the mode's
+  // score. Higher score = more confident that mode is intended.
+  const SIGNALS = {
+    story:      { kw: /\b(story|tale|yarn|narrative|fable|legend|bedtime|plot|fiction)\b/i, vb: /\b(write|tell|make up|spin|compose|craft|narrate|give me|come up with)\b/i, w: 3 },
+    essay:      { kw: /\b(essay|paper|write[- ]up|writeup|treatise|long form|discussion)\b/i, vb: /\b(write|compose|draft|give me|make)\b/i, w: 3 },
+    paragraph:  { kw: /\b(paragraph|blurb|few sentences|brief note)\b/i, vb: /\b(write|give|make)\b/i, w: 3 },
+    recipe:     { kw: /\b(recipe|ingredient|dish|meal|cook|bake|prepare|how (do i|to) (cook|make|bake))\b/i, w: 3 },
+    research:   { kw: /\b(research|deep dive|rundown|breakdown|analysis|info on|facts about|everything about|background on|scoop on|lowdown|details on|learn about)\b/i, w: 3 },
+    email:      { kw: /\b(email|letter|note to|message to|draft.+to)\b/i, w: 3 },
+    proofread:  { kw: /\b(proofread|proof[- ]read|edit this|revise this|correct this|check my (writing|grammar|spelling))\b/i, w: 3 },
+    summarize:  { kw: /\b(summarize|summarise|sum up|summary|tldr|tl;dr|shorten|condense|key points|in a nutshell)\b/i, w: 3 },
+    translate:  { kw: /\b(translate|in spanish|in french|in german|in japanese|in chinese|in italian|in portuguese|in russian|in arabic|how do you say)\b/i, w: 3 },
+    rewrite:    { kw: /\b(rewrite|rephrase|reword|say this differently|make (this|it) (more|less))\b/i, w: 3 },
+    brainstorm: { kw: /\b(brainstorm|ideas for|list of|come up with|throw out some|think of (some|a few)|suggest (some|a few)|possible)\b/i, w: 2 },
+    poem:       { kw: /\b(poem|poetry|haiku|limerick|sonnet|verse|rhyme scheme)\b/i, w: 3 },
+    outline:    { kw: /\b(outline|structure for|sections for|skeleton of|table of contents)\b/i, w: 3 },
+    plan:       { kw: /\b(how do (i|you)|how to|step[- ]by[- ]step|plan for|guide to|walk.?through|instructions (for|on)|process of)\b/i, w: 2 },
+    code:       { kw: /\b(code|script|program|function|algorithm|snippet|javascript|python|java|c\+\+)\b/i, vb: /\b(write|give|make|show)\b/i, w: 3 },
+    debate:     { kw: /\b(pros and cons|arguments? (for|against)|both sides|for and against|debate)\b/i, w: 3 },
+    trivia:     { kw: /\b(trivia|fun fact|did you know|interesting fact|random fact)\b/i, w: 3 },
+    names:      { kw: /\b(name ideas|suggest names|name suggestions|possible names|baby names|business names)\b/i, w: 3 },
+    roleplay:   { kw: /\b(pretend (to be|you are)|act (like|as)|roleplay|play the role|be a)\b/i, w: 2 },
+    joke:       { kw: /\b(joke|pun|funny|make me laugh|comedy)\b/i, w: 2 },
+    review:     { kw: /\b(review|rating|stars|critique|verdict on)\b/i, w: 2 },
+    dialogue:   { kw: /\b(dialogue|conversation between|script between|scene between)\b/i, w: 3 },
+    slogan:     { kw: /\b(slogan|tagline|catchphrase|catchy (phrase|line)|motto)\b/i, w: 3 },
+    rhymes:     { kw: /\b(rhyme|rhymes with)\b/i, w: 3 },
+    tweet:      { kw: /\b(tweet|social (media )?post|140 char|280 char)\b/i, w: 3 },
+    quiz:       { kw: /\b(quiz me|test me|ask me questions)\b/i, w: 3 },
+    motivational:{kw: /\b(motivat|inspir|encourag|fortune cookie|pep talk)/i, w: 3 },
+    counter:    { kw: /\b(argue against|counterargument|case against|why.+(bad|wrong))\b/i, w: 3 },
+    metaphor:   { kw: /\b(metaphor|analogy|simile|like what)\b/i, w: 3 },
+    acronym:    { kw: /\b(acronym|stand for|abbreviation)\b/i, w: 3 },
+    pitch:      { kw: /\b(elevator pitch|pitch (for|about)|30[- ]second pitch)\b/i, w: 3 },
+    swot:       { kw: /\bswot\b/i, w: 3 },
+    song:       { kw: /\b(song (lyrics|about)|lyrics (for|about)|write a song|write me a song)\b/i, w: 3 },
+    speech:     { kw: /\b(speech (about|for)|remarks (for|about)|address (to|for))\b/i, w: 3 },
+    scene:      { kw: /\b(scene (about|for|involving)|screenplay|script about|movie scene)\b/i, w: 3 },
+    flashcards: { kw: /\b(flash[- ]?cards|study cards)\b/i, w: 3 },
+    factcheck:  { kw: /\b(is it true|fact check|is that true|true or false|is.+(real|correct|accurate))\b/i, w: 2 },
+    compare:    { kw: /\b(compare|difference between|vs\b|versus\b|contrast)\b/i, w: 2 },
+    eli5:       { kw: /\b(eli5|explain like|simple(r)? version|for (kids|dummies|a 5 year old))\b/i, w: 3 }
+  };
+
+  let bestMode = null, bestScore = 0;
+  for (const [mode, sig] of Object.entries(SIGNALS)) {
+    let score = 0;
+    if (sig.kw && sig.kw.test(q)) score += sig.w;
+    if (sig.vb && sig.vb.test(q)) score += 1;
+    if (score > bestScore) { bestScore = score; bestMode = mode; }
+  }
+
+  // Confidence threshold — below this we say "no task detected" so the
+  // normal conversational pipeline can handle it.
+  if (bestScore < 2 || !bestMode) return null;
+
+  const subject = cap(extractSubjectFuzzy(q));
+  // Build the task object with mode-specific extras filled in best-effort
+  const task = { mode: bestMode, subject, _fuzzy: true };
+  if (bestMode === "compare") {
+    const parts = q.match(/(?:compare|difference between|contrast)\s+(.+?)\s+(?:and|vs|versus|v\.?)\s+(.+?)[?.!]*$/i)
+               || q.match(/(.+?)\s+(?:vs|versus|v\.?)\s+(.+?)[?.!]*$/i);
+    if (parts) { task.a = cap(parts[1]); task.b = cap(parts[2]); }
+    else task.a = subject, task.b = "other thing";
+  }
+  if (bestMode === "email") {
+    const rec = q.match(/\bto\s+(.+?)(?:\s+(?:about|regarding)|[?.!]|$)/i);
+    task.recipient = rec ? cap(rec[1]) : "";
+    task.emailType = "";
+  }
+  if (bestMode === "joke")      task.jokeType = "joke";
+  if (bestMode === "poem") {
+    const pm = q.match(/\b(haiku|limerick|sonnet)\b/i);
+    task.poemType = pm ? pm[1].toLowerCase() : "poem";
+  }
+  if (bestMode === "translate") {
+    const lm = q.match(/\b(?:in|to|into)\s+(spanish|french|german|japanese|chinese|italian|portuguese|russian|arabic|dutch|polish|turkish|greek|hebrew|hindi|korean|vietnamese|latin)\b/i);
+    task.language = lm ? lm[1].toLowerCase() : "spanish";
+    task.text = q.replace(/^\w+\s+/, "").replace(/\s+(?:in|to|into)\s+\w+.*$/i, "").trim();
+  }
+  if (bestMode === "roleplay") {
+    const chm = q.match(/\b(?:a |an |like a |as a )?(pirate|cowboy|wizard|robot|alien|cat|dog|therapist|butler|ghost|caveman|shakespeare|baby|monk|detective|gangster|vampire)\b/i);
+    task.character = chm ? chm[1] : "strange person";
+  }
+  if (bestMode === "research") {
+    task.brief = /\b(brief|quick|short|tldr|summary|in a nutshell)\b/i.test(q);
+  }
+
+  return task;
 }
 
 // ============================================================
@@ -3114,10 +3757,100 @@ const CLOSERS = {
 };
 function closer(mode) { return pick(CLOSERS[mode] || ["end."]); }
 
+// ============================================================
+// CONTEXTUAL PREFIX — makes every task reply feel aware of how the
+// question was asked AND what topic it's about, not just a template
+// result. Composes 0-2 short prefix pieces.
+// ============================================================
+function contextualPrefix(raw, task) {
+  if (!raw) return "";
+  const q = raw.toLowerCase().trim();
+  const topic = task.subject || task.a || "";
+  const parts = [];
+
+  const isQuestion = /[?]$/.test(raw) || /^(what|who|why|how|when|where|which|is|are|was|were|do|does|did|can|could|will|would|should|am)/i.test(q);
+  const isCommand  = /^(write|give|make|tell|show|do|brainstorm|generate|compose|draft|spin|come up with|outline|research|translate|rewrite|summarize|summarise|summar|sum up|quiz|motivate|inspire|argue|compare|contrast|explain|eli5)/i.test(q);
+  const isPolite   = /^(please|can you|could you|would you|may i|may you)/i.test(q);
+  const hasBang    = /!/.test(raw);
+
+  // Question-form acknowledgment (higher chance for questions).
+  if (isQuestion && Math.random() < 0.55) {
+    parts.push(pick([
+      "hmm. ", "ok. ", "good question. ", "let me think. ", "alright. ",
+      "uhh. ", "questions. ok. ", "interesting question. ",
+      "...ok. ", "right. "
+    ]));
+  } else if (isPolite && Math.random() < 0.35) {
+    parts.push(pick([
+      "since you asked. ", "politely noted. ", "ok, since you said please. "
+    ]));
+  } else if (isCommand && Math.random() < 0.3) {
+    parts.push(pick([
+      "ok. ", "sure. ", "fine. ", "got it. ", "alright. "
+    ]));
+  } else if (hasBang && Math.random() < 0.3) {
+    parts.push(pick(["ok ok. ", "loud. but ok. ", "heard you. "]));
+  }
+
+  // Topic echo — only occasionally, and only if the result doesn't
+  // already start by referencing the topic.
+  if (topic && Math.random() < 0.28) {
+    parts.push(pick([
+      `${topic}. `,
+      `${topic}... `,
+      `oh. ${topic}. `,
+      `right — ${topic}. `,
+      `${topic}, yes. `
+    ]));
+  }
+
+  return parts.join("");
+}
+
+// Strips or randomizes shouty "TASK HEADER: X" lines into casual openers
+// half the time. This is what makes single-line/short task results
+// (rhymes, slogans, trivia, etc.) feel less machine-generated.
+function softenHeader(text, mode, subj) {
+  if (!text) return text;
+  if (Math.random() > 0.5) return text;  // keep the formal version half the time
+  const alts = {
+    rhymes:    [`rhymes with ${subj}. let me dig.`, `${subj}. rhymes. hmm.`, `${subj} is famously hard to rhyme. but:`, `rhymes for ${subj}:`],
+    recipe:    [`ok. ${subj}. here's roughly how:`, `${subj}. a recipe. fine.`, `cooking ${subj}. i hope you have hands.`],
+    outline:   [`outline for ${subj}. ok.`, `${subj}, outlined:`, `rough shape of ${subj}:`],
+    swot:      [`swot on ${subj}. ok.`, `${subj}. let's analyze:`, `${subj}. strengths/weaknesses/etc:`],
+    brainstorm:[`brainstorming ${subj}.`, `ideas for ${subj}:`, `${subj}, thought about:`],
+    slogan:    [`slogans. for ${subj}.`, `${subj}. catchy phrases, allegedly:`, `marketing ${subj}:`],
+    flashcards:[`flashcards for ${subj}. ok.`, `study cards, ${subj}:`, `${subj}, in card form:`],
+    quiz:      [`quiz${subj ? " on " + subj : ""}. ok.`, `${subj ? "test on " + subj : "test"}. try:`, `pop quiz${subj ? ": " + subj : ""}.`],
+    names:     [`names for ${subj}.`, `${subj}, naming options:`, `what to call ${subj}:`],
+    research:  [`research on ${subj}.`, `${subj}. here's what i've got:`, `${subj} — notes:`],
+    debate:    [`${subj}. pros and cons:`, `both sides of ${subj}:`, `${subj}, two ways:`],
+    song:      [`a song about ${subj}:`, `${subj}. in song form:`, `${subj}, singing:`],
+    speech:    [`a speech about ${subj}:`, `${subj}. remarks:`, `remarks on ${subj}:`],
+    acronym:   [`${subj}. an acronym:`, `acronym time — ${subj}:`, `${subj} stands for:`],
+    review:    [`${subj}. reviewed:`, `i have opinions on ${subj}:`, `the ${subj} review:`],
+    compare:   null,  // compare has its own varied headers already
+    story:     null, essay: null, poem: null, plan: null, email: null,
+    proofread: null, summarize: null, translate: null, rewrite: null
+  };
+  const pool = alts[mode];
+  if (!pool) return text;
+  // Replace the first "HEADER:" style line (all caps + colon) with a casual one.
+  const replaced = text.replace(/^[A-Z][A-Z0-9 :⭐★—\-]{2,40}[:\n]/, pick(pool) + "\n");
+  return replaced;
+}
+
 async function longFormRespond(task) {
   // Strip leading articles so "a dog" / "an apple" / "the eiffel tower" don't
   // double up as "a a dog" in templates.
-  const subj = (task.subject || "").replace(/^\s*(a|an|the)\s+/i, "").trim() || "something";
+  let subj = (task.subject || "").replace(/^\s*(a|an|the)\s+/i, "").trim() || "something";
+  // For plan mode: "how do i make pancakes" → subj is "make pancakes". Strip
+  // the leading action verb so Wikipedia lookup hits the noun ("pancakes",
+  // "income approach", etc.) instead of the verb phrase.
+  if (task.mode === "plan") {
+    const stripped = subj.replace(/^(perform|do|make|get|start|begin|complete|finish|execute|run|learn|master|build|create|write|develop|plan|prepare|conduct|host|throw|organize|set up|set-up|set|cook|bake|fix|repair|install|assemble)\s+(?:an? |the |some |your |my )?/i, "").trim();
+    if (stripped && stripped !== subj) subj = stripped;
+  }
   const [wiki, cn, dm, wkt, ddg] = await Promise.all([
     fetchWiki(subj), fetchConceptNet(subj), fetchDatamuse(subj),
     fetchWiktionary(subj), fetchDDG(subj)
@@ -3130,25 +3863,438 @@ async function longFormRespond(task) {
     }
   }
 
-  if (task.mode === "story")     return generateStory(subj, groups);
-  if (task.mode === "essay")     return generateEssay(subj, wiki, wkt, ddg, groups, dm?.flat);
-  if (task.mode === "research")  return generateResearch(subj, wiki, wkt, ddg, groups, task.brief);
-  if (task.mode === "paragraph") return generateParagraph(subj, wiki, ddg, groups, dm?.flat);
-  if (task.mode === "proofread") return generateProofread(task.targetText || task.subject);
-  if (task.mode === "email")     return generateEmail(task.recipient, subj, wiki, groups, task.emailType);
-  if (task.mode === "summarize") return generateSummarize(task.targetText, subj, wiki);
-  if (task.mode === "translate") return generateTranslate(task.text, task.language);
-  if (task.mode === "rewrite")   return generateRewrite(task.text, task.tone);
-  if (task.mode === "brainstorm")return generateBrainstorm(subj, task.count, groups, dm?.flat);
-  if (task.mode === "poem")      return generatePoem(task.poemType, subj, groups);
-  if (task.mode === "outline")   return generateOutline(subj, groups, wiki);
-  if (task.mode === "plan")      return generatePlan(subj, groups);
-  if (task.mode === "code")      return generateCode(subj);
-  if (task.mode === "debate")    return generateDebate(subj, groups);
-  if (task.mode === "trivia")    return generateTrivia(subj, wiki, ddg, groups);
-  if (task.mode === "names")     return generateNames(subj, groups);
-  if (task.mode === "roleplay")  return generateRoleplay(task.character);
-  return "ok. i don't know what you want.";
+  // Dispatch to the mode-specific generator. Some are async (compare,
+  // rhymes, translate) — await where needed.
+  let result;
+  switch (task.mode) {
+    case "story":       result = generateStory(subj, groups); break;
+    case "essay":       result = generateEssay(subj, wiki, wkt, ddg, groups, dm?.flat); break;
+    case "research":    result = generateResearch(subj, wiki, wkt, ddg, groups, task.brief); break;
+    case "paragraph":   result = generateParagraph(subj, wiki, ddg, groups, dm?.flat); break;
+    case "proofread":   result = generateProofread(task.targetText || task.subject); break;
+    case "email":       result = generateEmail(task.recipient, subj, wiki, groups, task.emailType); break;
+    case "summarize":   result = generateSummarize(task.targetText, subj, wiki); break;
+    case "translate":   result = await generateTranslate(task.text, task.language); break;
+    case "rewrite":     result = generateRewrite(task.text, task.tone); break;
+    case "brainstorm":  result = generateBrainstorm(subj, task.count, groups, dm?.flat); break;
+    case "poem":        result = generatePoem(task.poemType, subj, groups); break;
+    case "outline":     result = generateOutline(subj, groups, wiki); break;
+    case "plan":        result = generatePlan(subj, groups, wiki, wkt); break;
+    case "code":        result = generateCode(subj); break;
+    case "debate":      result = generateDebate(subj, groups); break;
+    case "trivia":      result = generateTrivia(subj, wiki, ddg, groups); break;
+    case "names":       result = generateNames(subj, groups); break;
+    case "roleplay":    result = generateRoleplay(task.character); break;
+    case "recipe":      result = generateRecipe(subj, groups); break;
+    case "compare":     result = await generateCompare(task.a, task.b); break;
+    case "eli5":        result = generateELI5(subj, wiki, groups); break;
+    case "joke":        result = generateJoke(task.jokeType, subj, groups); break;
+    case "review":      result = generateReview(subj, task.reviewKind, groups); break;
+    case "dialogue":    result = generateDialogue(task.a, task.b); break;
+    case "slogan":      result = generateSlogan(subj, groups); break;
+    case "rhymes":      result = await generateRhymes(subj); break;
+    case "tweet":       result = generateTweet(subj, groups); break;
+    case "quiz":        result = generateQuiz(subj, wiki, groups); break;
+    case "motivational":result = generateMotivational(); break;
+    case "counter":     result = generateCounter(subj, groups); break;
+    case "metaphor":    result = generateMetaphor(subj, groups); break;
+    case "acronym":     result = generateAcronym(subj); break;
+    case "pitch":       result = generatePitch(subj, wiki, groups); break;
+    case "swot":        result = generateSWOT(subj, groups); break;
+    case "song":        result = generateSong(subj, groups); break;
+    case "speech":      result = generateSpeech(subj, groups); break;
+    case "scene":       result = generateScene(subj, groups); break;
+    case "flashcards":  result = generateFlashcards(subj, wiki, groups); break;
+    case "factcheck":   result = generateFactcheck(subj, wiki, ddg); break;
+    default:            return "ok. i don't know what you want.";
+  }
+
+  // ---- CONTEXT LAYER ----
+  // Soften shouty "TASK: X" headers half the time, then prepend an
+  // acknowledgment of how the question was asked and what the topic is.
+  result = softenHeader(result, task.mode, subj);
+  const prefix = contextualPrefix(task._raw || "", task);
+  return prefix + result;
+}
+
+// Add closers for the new modes
+Object.assign(CLOSERS, {
+  recipe:       ["that's the recipe. untested. by me.","cook at own risk.","dinner. possibly.","ratings: none yet."],
+  compare:      ["those are the differences. some of them are made up.","there you go. two things. neither fully explained.","compare done. judge yourself."],
+  eli5:         ["that's the kid version. the adult version is much the same.","eli5 done. eli25 would take longer.","there. simple. too simple, maybe."],
+  joke:         ["(nobody laughed. including me.)","(that was the joke. legally.)","(comedy is hard. i did a comedy.)","(i'll be here all week. unfortunately.)"],
+  review:       ["stars are vibes-based.","i have not consumed this. i reviewed anyway.","professional reviewer (self-appointed).","reviews are subjective. mine especially."],
+  dialogue:     ["end of scene. applause optional.","(the conversation ended abruptly. this is realistic.)","(actors are union. i am not.)"],
+  slogan:       ["use it. don't use it. no refunds.","not checked for trademark conflicts. you check.","slogan generated. marketing is easy."],
+  rhymes:       ["those rhymes. some are stretches.","poetry ready. or close.","rhyme list ends. you can rhyme the rest yourself."],
+  tweet:        ["ship it. or don't.","trending in my heart.","(280 chars. possibly.)"],
+  quiz:         ["(do not cheat. i am not watching. or am i.)","(answer in your head. i can't hear you.)","(quiz over. grade yourself.)"],
+  motivational: ["","","(that was motivation. legally.)","(go forth. or don't.)"],
+  counter:      ["(those are reasons to not. keep them in mind.)","(counter-argued. no winner declared.)","(one-sided on purpose.)"],
+  metaphor:     ["(metaphor complete. meaning unclear.)","(that's a metaphor. i think.)","(poetry achieved. at a cost.)"],
+  acronym:      ["(acronym legally mine.)","(it stands for something. probably.)","(don't use this for anything official.)"],
+  pitch:        ["(the elevator ride ended. doors opening.)","(30 seconds up.)","(you're welcome.)"],
+  swot:         ["(swot complete. do not present this to the board.)","(analysis ends. no action recommended.)","(i should not be a consultant.)"],
+  song:         ["(that was a song. apparently.)","(verse over. chorus optional.)","(no instruments included.)"],
+  speech:       ["(speech ends. polite applause.)","(exit stage left.)","(thank you. good night.)"],
+  scene:        ["(fade out.)","(scene ends. cast tired.)","(cut to black.)"],
+  flashcards:   ["(flip them over. pretend to study.)","(study cards ready. motivation: yours to supply.)","(deck built. shuffle at your discretion.)"],
+  factcheck:    ["(i am not a fact checker. officially.)","(verdict: take it with salt.)","(further research recommended. by someone else.)"]
+});
+
+// ---------- RECIPE ----------
+function generateRecipe(subj, groups) {
+  const ing = _g(groups, "HasA").concat(_g(groups, "PartOf"), _g(groups, "RelatedTo")).slice(0, 5);
+  const padding = ["salt","pepper","oil","water","something green","butter","flour","an onion","regret"];
+  while (ing.length < 5) ing.push(pick(padding.filter(p => !ing.includes(p))));
+  const verbs = ["chop","boil","simmer","fry","roast","mix","stir","season","pray over","ignore"];
+  const variants = [
+    () => `RECIPE: ${subj}\n\nINGREDIENTS:\n${ing.map(i => "• " + i).join("\n")}\n\nSTEPS:\n1. ${pick(verbs)} the ${ing[0]}.\n2. ${pick(verbs)} the ${ing[1]} with the ${ing[2]}.\n3. combine everything. don't ask.\n4. ${pick(verbs)} for a while. you'll know when.\n5. serve to someone brave.`,
+    () => `how to make ${subj} (allegedly):\n\nyou will need: ${ing.join(", ")}.\n\nmethod: ${pick(verbs)} everything. some of it twice. season to taste. mine tasted like regret.\n\nserves: 2-4 depending on forgiveness.`,
+    () => `${subj.toUpperCase()} — a recipe\n\nstart with ${ing[0]} and ${ing[1]}. ${pick(verbs)} them.\nadd ${ing[2]}, ${ing[3]}, ${ing[4]}. ${pick(verbs)}.\nfinish by ${pick(verbs)}ing. plate. apologize.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("recipe"));
+}
+
+// ---------- COMPARE ----------
+async function generateCompare(a, b) {
+  const [wa, ga, wb, gb] = await Promise.all([
+    fetchWiki(a), fetchDatamuse(a), fetchWiki(b), fetchDatamuse(b)
+  ]);
+  const aDesc = wa?.extract ? wa.extract.split(/(?<=[.!?])\s+/)[0] : `a ${a}`;
+  const bDesc = wb?.extract ? wb.extract.split(/(?<=[.!?])\s+/)[0] : `a ${b}`;
+  const aRel = ga?.groups?.IsA?.[0] || ga?.groups?.RelatedTo?.[0] || "thing";
+  const bRel = gb?.groups?.IsA?.[0] || gb?.groups?.RelatedTo?.[0] || "thing";
+  const variants = [
+    () => `${a.toUpperCase()} vs ${b.toUpperCase()}\n\n${a}:\n  ${aDesc}\n\n${b}:\n  ${bDesc}\n\nkey difference: one is a ${aRel}, the other is a ${bRel}. that's my analysis.`,
+    () => `compare: ${a} and ${b}.\n\n• ${a} is ${aRel}-shaped. ${b} is ${bRel}-shaped.\n• they share: probably existing.\n• they don't share: almost everything else.\n• winner: neither. or both. depends on your mood.`,
+    () => `${a} is ${a}. ${b} is ${b}. these are not the same thing.\n\nthe ${a}: ${aDesc}\nthe ${b}: ${bDesc}\n\nin conclusion: if you wanted one, get that one. don't get the other one by accident.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("compare"));
+}
+
+// ---------- ELI5 ----------
+function generateELI5(subj, wiki, groups) {
+  const isA = _g(groups, "IsA")[0] || "thing";
+  const related = _g(groups, "RelatedTo")[0] || "other stuff";
+  const variants = [
+    () => `${subj}, simple version:\n\nit's a ${isA}. it has to do with ${related}. grown-ups make it sound harder than it is.\n\nexample: imagine ${subj}, but smaller and friendlier. that's ${subj}. kind of.`,
+    () => `ok, kid-version of ${subj}:\n\nbig people word: ${subj}.\nsmall explanation: it's like a ${isA}. that's enough to know.\nif a grown-up asks, say "yes."`,
+    () => `${subj} for a small person:\n\nit goes like this — there's a ${isA}. the ${isA} sometimes does ${related} things. when it does, we call it ${subj}. that's the whole thing. don't ask more.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("eli5"));
+}
+
+// ---------- JOKE / PUN ----------
+function generateJoke(jokeType, subj, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || subj || "nothing";
+  const generalJokes = [
+    "why did the chicken cross the road?\nit was bored. the road was also bored. nobody laughed.",
+    "knock knock.\nwho's there.\ni forgot. try again.",
+    "i told my computer a joke. it didn't laugh. i'm the computer.",
+    "what's the difference between a duck? one of its legs is both the same.",
+    "i have an irrational fear of speed bumps. i'm slowly getting over it.",
+    "i used to be a baker, but i couldn't make enough dough. also i didn't know how to bake."
+  ];
+  if (!subj) {
+    return dumbifyLong(pick(generalJokes) + "\n\n" + closer("joke"));
+  }
+  const punOn = subj.toLowerCase();
+  const subjVariants = [
+    () => `here's a joke about ${subj}:\n\nwhat do you call a ${subj} that ${_firstOr(_g(groups, "CapableOf"), "doesn't")}s?\n\na ${subj}. that's the joke.`,
+    () => `${subj} walks into a bar. the bartender says "we don't serve your kind here." the ${subj} leaves. this is a tragedy, not a joke.`,
+    () => `why is a ${subj} like a ${rel}?\ni don't know. you tell me. i've been asking for years.`,
+    () => `my friend told me a ${punOn} pun. i didn't get it. i still don't. this is your joke now.`,
+    () => `what did the ${subj} say to the other ${subj}?\n"nothing. ${subj}s don't talk."`
+  ];
+  return dumbifyLong(pick(subjVariants)() + "\n\n" + closer("joke"));
+}
+
+// ---------- REVIEW ----------
+function generateReview(subj, kind, groups) {
+  const stars = pick(["⭐","⭐⭐","⭐⭐⭐","⭐⭐⭐⭐","⭐⭐⭐⭐⭐"]);
+  const rel = _g(groups, "RelatedTo")[0] || "things";
+  const kindLabel = kind ? kind + " review" : "review";
+  const variants = [
+    () => `${kindLabel.toUpperCase()}: ${subj}\n${stars}\n\nhonestly? it was ${pick(["fine","great","confusing","overrated","underrated","too much","not enough","about what i expected"])}. i'd ${pick(["recommend","not recommend","recommend with caveats","shrug about"])} it. reminded me of ${rel}. that's either good or bad.`,
+    () => `my take on ${subj}: ${stars}\n\ni consumed/experienced this ${subj} over the course of ${pick(["an afternoon","three minutes","two years","one sitting"])}. afterwards i felt ${pick(["changed","unchanged","tired","full","empty","seen"])}. ${rel} came up more than expected.`,
+    () => `${subj} — ${stars}\n\nthe good: it exists.\nthe bad: it exists.\nthe ugly: the lighting was bad when i experienced it.\n\nbottom line: ${pick(["worth your time","possibly not worth your time","too early to tell","it's a ${subj}"])}.`,
+    () => `review of ${subj}\n\nrating: ${stars}\n\none-line summary: ${pick(["better than nothing","worse than advertised","fine, i guess","surprisingly ${rel}-adjacent","not what i thought"])}.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("review"));
+}
+
+// ---------- DIALOGUE ----------
+function generateDialogue(a, b) {
+  const A = a.charAt(0).toUpperCase() + a.slice(1);
+  const B = b.charAt(0).toUpperCase() + b.slice(1);
+  const variants = [
+    () => `${A}: hey.\n${B}: hi.\n${A}: so.\n${B}: yeah.\n${A}: ...\n${B}: do you want to talk about it.\n${A}: no.\n${B}: ok.\n\n(silence. the scene ends.)`,
+    () => `${A}: have you ever thought about ${pick(["everything","nothing","a specific thing","cheese","your hands"])}?\n${B}: constantly.\n${A}: oh.\n${B}: you asked.\n${A}: i regret asking.\n${B}: also constantly.`,
+    () => `${A}: ok so i was thinking —\n${B}: no.\n${A}: you didn't even let me finish.\n${B}: i know you.\n${A}: ...fair.\n${B}: (pause) go on.\n${A}: nevermind.\n${B}: figures.`,
+    () => `${A}: do you trust me?\n${B}: no.\n${A}: great. anyway —\n${B}: that was a full sentence and you breezed past it.\n${A}: i'm an efficient communicator.\n${B}: you're menacing.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("dialogue"));
+}
+
+// ---------- SLOGAN ----------
+function generateSlogan(subj, groups) {
+  const adj = _g(groups, "HasProperty")[0] || _g(groups, "RelatedTo")[0] || "good";
+  const rel = _g(groups, "RelatedTo")[1] || "life";
+  const options = [
+    `${subj.toUpperCase()}: ${adj}ly yours.`,
+    `${subj}: because ${rel}.`,
+    `got ${subj}? you should.`,
+    `${subj} — the ${subj} of ${subj}s.`,
+    `one ${subj}. one ${rel}. no regrets.`,
+    `${subj}. trust the ${adj}.`,
+    `don't think. ${subj}.`,
+    `${subj}: now with more ${rel}.`,
+    `if it's not ${subj}, it's something else.`,
+    `${subj}. for the ${adj} in all of us.`
+  ];
+  const shuffled = [...options].sort(() => Math.random() - 0.5).slice(0, 5);
+  const lines = ["SLOGANS FOR " + subj.toUpperCase() + ":", ""];
+  shuffled.forEach((s, i) => lines.push(`${i + 1}. "${s}"`));
+  lines.push("\n" + closer("slogan"));
+  return dumbifyLong(lines.join("\n"));
+}
+
+// ---------- RHYMES ----------
+async function generateRhymes(subj) {
+  try {
+    const r = await fetchWithTimeout(`https://api.datamuse.com/words?rel_rhy=${encodeURIComponent(subj)}&max=20`, 5000);
+    const json = r.ok ? await r.json() : [];
+    const words = json.map(w => w.word).filter(w => /^[a-z][a-z'\-]+$/.test(w));
+    if (!words.length) return `nothing rhymes with ${subj}. maybe. i tried.\n\n${closer("rhymes")}`;
+    const top = words.slice(0, 12);
+    return `RHYMES WITH ${subj.toUpperCase()}:\n\n${top.join(", ")}\n\n${closer("rhymes")}`;
+  } catch (e) {
+    return `i can't rhyme right now. try again later. or rhyme it yourself.`;
+  }
+}
+
+// ---------- TWEET ----------
+function generateTweet(subj, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || subj;
+  const adj = _g(groups, "HasProperty")[0] || "wild";
+  const tags = [`#${subj.replace(/\s+/g, "")}`, `#${rel.replace(/\s+/g, "")}`, `#thoughts`, `#nobodyaskedbutstill`];
+  const variants = [
+    () => `hot take: ${subj} is ${adj}. i said what i said. ${tags.slice(0, 2).join(" ")}`,
+    () => `nobody:\n\nabsolutely nobody:\n\nme at 3am thinking about ${subj}: ${tags[0]}`,
+    () => `just so you know: ${subj} ≠ ${rel}. learn the difference. ${tags[0]} ${tags[2]}`,
+    () => `${subj} > ${rel}. fight me. ${tags.slice(0, 2).join(" ")}`,
+    () => `me: maybe i'll have a normal day\nalso me: *thinks about ${subj} for 2 hours*\n${tags[0]}`,
+    () => `unpopular opinion: ${subj} is fine. thank you for coming to my ted talk. ${tags[0]}`
+  ];
+  return pick(variants)() + "\n\n" + closer("tweet");
+}
+
+// ---------- QUIZ ----------
+function generateQuiz(subj, wiki, groups) {
+  const hint = wiki?.extract ? wiki.extract.split(/(?<=[.!?])\s+/)[0] : null;
+  const isA = _g(groups, "IsA")[0];
+  const hasA = _g(groups, "HasA")[0];
+  const generalQs = [
+    "Q: what year did the year happen?\n(think about it.)",
+    "Q: name three things that are not the same.\n(i'll wait.)",
+    "Q: which is more: a pound of feathers or a pound of something else?\n(answer in your head.)"
+  ];
+  if (!subj) return dumbifyLong(pick(generalQs) + "\n\n" + closer("quiz"));
+  const variants = [
+    () => `QUIZ: ${subj}\n\nQ1. what is a ${subj}?\n${isA ? `   (hint: it's a ${isA}. that was free.)` : "   (no hint. i don't have one.)"}\n\nQ2. ${hasA ? `what does a ${subj} typically have?` : `what does a ${subj} do?`}\n   (think about it.)\n\nQ3. true or false: ${subj} is important.\n   (trick question. both.)`,
+    () => `POP QUIZ:\n\n${hint ? hint + "\n\nbased on the above: what is a " + subj + "?" : `explain ${subj} in your own words.`}\n\n(grade yourself. be honest.)`,
+    () => `you vs me — trivia round:\n\nyou: answer the following about ${subj}.\nme: also answer the following about ${subj}. (i won't do well.)\n\n1. what is it\n2. why is it\n3. is it\n\n(first to answer correctly wins nothing.)`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("quiz"));
+}
+
+// ---------- MOTIVATIONAL ----------
+function generateMotivational() {
+  const quotes = [
+    `"every day is a chance to be slightly less worse."\n  — someone, probably`,
+    `"you miss 100% of the shots you don't hear about."\n  — a mangled version of a famous quote`,
+    `"the best time to start was yesterday. the second best time was also yesterday. today is bad."\n  — bong`,
+    `"believe in yourself. nobody else will do it for you. they're busy."\n  — fortune cookie (approximate)`,
+    `"if you're going through hell, keep going. getting off the highway is the hard part."\n  — a sign on the road`,
+    `"be the change you want to see. do not be other kinds of change."\n  — bong, channeling someone else`,
+    `"the only way out is through. through what? unclear. just through."\n  — a passing monk`,
+    `"success is 1% inspiration and 99% wishing you hadn't started."\n  — bong (not endorsed by anyone)`
+  ];
+  return pick(quotes) + "\n\n" + closer("motivational");
+}
+
+// ---------- COUNTERARGUMENT ----------
+function generateCounter(subj, groups) {
+  const ant = _g(groups, "Antonym")[0] || "its opposite";
+  const neg = ["takes too long","costs too much","annoys people","doesn't work","was never asked for","has a bad smell","disappoints historians","upsets cats"];
+  const variants = [
+    () => `ARGUMENTS AGAINST ${subj.toUpperCase()}:\n\n1. ${subj} ${pick(neg)}.\n2. ${subj} is not ${ant}. this matters.\n3. ${subj} has gone on long enough.\n4. the enthusiasm for ${subj} is manufactured.\n5. consider ${ant} instead. or nothing.`,
+    () => `REASONS TO RECONSIDER ${subj}:\n\n• the people who like ${subj} haven't thought about it hard enough.\n• ${subj} is just ${ant} with extra steps.\n• history will not be kind to ${subj}.\n• also it ${pick(neg)}.`,
+    () => `i am against ${subj}. here's why:\n\nfirst, ${subj} ${pick(neg)}. second, nobody's proven it's better than ${ant}. third, i said so. this is the weakest argument. it's last for a reason.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("counter"));
+}
+
+// ---------- METAPHOR ----------
+function generateMetaphor(subj, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || "a feeling";
+  const rel2 = _g(groups, "RelatedTo")[1] || "the weather";
+  const variants = [
+    () => `${subj} is like ${rel}, but if ${rel} could ${pick(["talk","disappoint you","move","stare back"])}.`,
+    () => `think of ${subj} as ${rel2}: always there, rarely helpful, occasionally blamed for things it didn't do.`,
+    () => `${subj} is a ${rel} wearing a ${rel2} as a hat. pretending nobody notices.`,
+    () => `if ${subj} were a color, it would be the color you see when you close your eyes too hard.`,
+    () => `${subj} is the ${rel} of ${rel2}s. i don't know what that means either.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("metaphor"));
+}
+
+// ---------- ACRONYM ----------
+function generateAcronym(subj) {
+  const letters = subj.toUpperCase().replace(/[^A-Z]/g, "").split("");
+  if (!letters.length) return `${subj} has no letters. i can't acronym nothing.\n\n${closer("acronym")}`;
+  const pools = {
+    A: ["awkward","anxious","amateur","adjacent","ambient"],
+    B: ["bewildered","broken","barely","basically","bizarre"],
+    C: ["concerning","chaotic","casually","confused","cursed"],
+    D: ["desperate","daily","dubious","deflated","disoriented"],
+    E: ["emergency","eternal","embarrassed","extremely","eclectic"],
+    F: ["failing","frequently","fractured","fine","flimsy"],
+    G: ["genuine","grim","gently","garbage","greasy"],
+    H: ["haunted","honestly","hopeful","hasty","hairy"],
+    I: ["improper","instantly","ironic","incredibly","itchy"],
+    J: ["just","jaded","jarringly","juvenile","joyous"],
+    K: ["kinda","kinetic","keenly","kooky","knotty"],
+    L: ["lackluster","loosely","luminous","laughable","limp"],
+    M: ["mostly","miserable","mildly","mysterious","mangled"],
+    N: ["nominal","nearly","nervous","narrow","naked"],
+    O: ["ominously","occasionally","overcooked","obscure","obvious"],
+    P: ["presumably","patchy","painful","pretend","plain"],
+    Q: ["questionably","quiet","quickly","quaint","queasy"],
+    R: ["relentless","really","rickety","resigned","raw"],
+    S: ["slightly","strange","sincere","suspiciously","sad"],
+    T: ["tragic","tentative","technically","tired","tepid"],
+    U: ["unusually","utterly","uncertain","useful","ugly"],
+    V: ["vaguely","violently","vapid","valid","vibrating"],
+    W: ["weirdly","wobbly","willfully","wet","worried"],
+    X: ["xenophilic","x-ray","xylophonic","xenial"],
+    Y: ["yelling","yearly","yellow","yesterday","youthful"],
+    Z: ["zealously","zoo-like","zesty","zenith"]
+  };
+  const words = letters.map(l => {
+    const p = pools[l];
+    return p ? pick(p) : "unknown";
+  });
+  return `${subj.toUpperCase()} stands for:\n\n${letters.map((l, i) => `${l} — ${words[i]}`).join("\n")}\n\n${closer("acronym")}`;
+}
+
+// ---------- ELEVATOR PITCH ----------
+function generatePitch(subj, wiki, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || "everyone";
+  const desc = wiki?.extract ? wiki.extract.split(/(?<=[.!?])\s+/)[0] : `${subj} is a thing.`;
+  const variants = [
+    () => `ELEVATOR PITCH: ${subj}\n\n"hi, have you heard of ${subj}? ${desc} we think it could change ${rel}. probably. we're raising ${pick(["a round","some money","questions","concerns"])}. here's my card. i don't have a card."`,
+    () => `[30-SECOND PITCH]\n\n${subj}. imagine ${rel}, but with ${subj} in it. that's the vision. we are three people in a trench coat pretending to be a company. interested?`,
+    () => `"${subj}: it's like ${rel} for the ${pick(["people","normals","enthusiasts","desperate"])}. market size: large. competition: also large. our edge: i'll tell you upstairs." (the elevator arrives. i get off.)`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("pitch"));
+}
+
+// ---------- SWOT ----------
+function generateSWOT(subj, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || "things";
+  const isA = _g(groups, "IsA")[0] || "thing";
+  const ant = _g(groups, "Antonym")[0] || "the opposite";
+  const lines = [`SWOT ANALYSIS: ${subj}`, ""];
+  lines.push(`STRENGTHS:`);
+  lines.push(`• ${subj} is a ${isA}. that's fundamental.`);
+  lines.push(`• people know what ${subj} is. roughly.`);
+  lines.push("");
+  lines.push(`WEAKNESSES:`);
+  lines.push(`• ${subj} is also ${subj}. can't escape that.`);
+  lines.push(`• branding is unclear.`);
+  lines.push("");
+  lines.push(`OPPORTUNITIES:`);
+  lines.push(`• market for ${rel} is growing. probably.`);
+  lines.push(`• nobody owns ${subj} yet. maybe they should.`);
+  lines.push("");
+  lines.push(`THREATS:`);
+  lines.push(`• ${ant} exists. this is a problem.`);
+  lines.push(`• competitors are smarter than we thought.`);
+  lines.push(`• the future is unknown. it usually is.`);
+  lines.push("");
+  lines.push(closer("swot"));
+  return dumbifyLong(lines.join("\n"));
+}
+
+// ---------- SONG LYRICS ----------
+function generateSong(subj, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || "you";
+  const verb = _g(groups, "CapableOf")[0] || "go";
+  const variants = [
+    () => `SONG: ${subj.toUpperCase()}\n\n[verse]\noh, ${subj}, oh ${subj},\nwhy do you ${verb} that way,\nyou say it's ${rel},\nbut i think it's monday.\n\n[chorus]\n${subj}, ${subj}, don't go,\ni don't know the chords,\ni don't know the chords at all.`,
+    () => `"${subj}" — a song\n\n(spoken): this one goes out to the ${rel}.\n\n[verse]\ni was walking down the street,\ni was thinking about ${subj},\ni saw a ${rel} on the corner,\nit said "don't do it."\n\n[outro]\n(the song ends abruptly.)`,
+    () => `UNRELEASED DEMO: ${subj}\n\n[hook — off-key]\n${subj}, ${subj}, everybody wants ${subj},\n${subj}, ${subj}, nobody gets ${subj}.\n\n[bridge]\nand i — oh — i — ${verb} alone.\n\n(fade out. producer cries.)`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("song"));
+}
+
+// ---------- SPEECH ----------
+function generateSpeech(subj, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || "the future";
+  const variants = [
+    () => `SPEECH: ${subj}\n\nladies and gentlemen,\n\ni am here today to speak about ${subj}. i was not the first choice. i may not be the last.\n\n${subj} has been with us for a long time. longer than i have. longer than some of you. we owe it respect.\n\nin closing: ${rel} is important. do your part. or don't. history will record something either way.\n\nthank you.`,
+    () => `[BONG CLEARS THROAT]\n\nfriends. colleagues. the one person in the back who wandered in by accident —\n\n${subj}. we are here for ${subj}.\n\nlet me tell you about ${rel}. it matters. i'm going to leave it at that because any more and i'll cry.\n\ngo forth. do ${subj}. or something close. thank you.`,
+    () => `A SPEECH (ABOUT ${subj.toUpperCase()})\n\ngood ${pick(["morning","afternoon","evening","day","time period"])}. i was asked to speak. i agreed. i now regret this.\n\n${subj}. that's the topic. i've said it. that's the speech.\n\n...ok fine, a little more: ${subj} and ${rel} go together like — well, not great, but together. that's it. that's all i've got. applaud when ready.`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("speech"));
+}
+
+// ---------- SCENE / SCREENPLAY ----------
+function generateScene(subj, groups) {
+  const rel = _g(groups, "RelatedTo")[0] || "the other one";
+  const loc = _g(groups, "AtLocation")[0] || "a room";
+  const variants = [
+    () => `INT. ${loc.toUpperCase()} — DAY\n\nA ${subj} sits in the corner. It is doing nothing.\n\nA ${rel} enters.\n\n${rel.toUpperCase()}\nhey.\n\n${subj.toUpperCase()}\nhey.\n\n(beat)\n\n${rel.toUpperCase()}\nso.\n\n${subj.toUpperCase()}\nso.\n\nCUT TO BLACK.`,
+    () => `EXT. OUTDOORS — NIGHT\n\nA ${subj} walks into frame. It looks up. Is it looking at us? Unclear.\n\n${subj.toUpperCase()}\n(to camera)\ni wasn't told there'd be a camera.\n\n${subj.toUpperCase()}\n(continued)\nanyway.\n\n(The ${subj} exits. The camera lingers on a ${rel}, unmoving.)\n\nFADE OUT.`,
+    () => `A SHORT SCENE\n\n[${loc}]\n\nthe ${subj} is ${pick(["pacing","standing","sitting too still","not present but implied"])}. the ${rel} is elsewhere. this is important.\n\nOFFSTAGE VOICE: is anyone there?\n\nthe ${subj} does not answer. this is, itself, an answer.\n\n[lights fade]`
+  ];
+  return dumbifyLong(pick(variants)() + "\n\n" + closer("scene"));
+}
+
+// ---------- FLASHCARDS ----------
+function generateFlashcards(subj, wiki, groups) {
+  const cards = [];
+  if (wiki?.extract) cards.push([`what is ${subj}?`, wiki.extract.split(/(?<=[.!?])\s+/)[0]]);
+  if (_g(groups, "IsA")[0]) cards.push([`${subj} is a kind of what?`, _g(groups, "IsA")[0]]);
+  if (_g(groups, "HasA")[0]) cards.push([`what does ${subj} have?`, _g(groups, "HasA").slice(0, 3).join(", ")]);
+  if (_g(groups, "AtLocation")[0]) cards.push([`where is ${subj} usually found?`, _g(groups, "AtLocation")[0]]);
+  if (_g(groups, "CapableOf")[0]) cards.push([`what can ${subj} do?`, _g(groups, "CapableOf").slice(0, 3).join(", ")]);
+  if (_g(groups, "RelatedTo")[0]) cards.push([`what is ${subj} related to?`, _g(groups, "RelatedTo").slice(0, 3).join(", ")]);
+  while (cards.length < 4) cards.push([`(blank card ${cards.length + 1})`, `(i ran out of facts)`]);
+  const lines = [`FLASHCARDS: ${subj}`, "---"];
+  cards.forEach((c, i) => lines.push(`\nCARD ${i + 1}\n  FRONT: ${c[0]}\n  BACK:  ${c[1]}`));
+  lines.push("\n" + closer("flashcards"));
+  return dumbifyLong(lines.join("\n"));
+}
+
+// ---------- FACT-CHECK ----------
+function generateFactcheck(claim, wiki, ddg) {
+  const verdicts = [
+    "VERDICT: unclear. take it with salt.",
+    "VERDICT: possibly true. possibly not. i'm not qualified.",
+    "VERDICT: true-ish. in certain lighting.",
+    "VERDICT: i have no strong evidence either way.",
+    "VERDICT: sources conflict. so do i."
+  ];
+  if (wiki?.extract) {
+    return dumbifyLong(`FACT-CHECK: "${claim}"\n\nwhat the internet says:\n${wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ")}\n\n${pick(verdicts)}\n\n${closer("factcheck")}`);
+  }
+  if (ddg) {
+    return dumbifyLong(`FACT-CHECK: "${claim}"\n\ni found this:\n${ddg}\n\n${pick(verdicts)}\n\n${closer("factcheck")}`);
+  }
+  return `FACT-CHECK: "${claim}"\n\ni don't know. i couldn't find anything.\nyou're on your own.\n\n${closer("factcheck")}`;
 }
 
 // ---------- SUMMARIZE ----------
@@ -3340,13 +4486,18 @@ function generateOutline(subj, groups, wiki) {
 }
 
 // ---------- PLAN ----------
-function generatePlan(subj, groups) {
+// Three branches:
+//   A) Wiki has real content → lead with it, then add lighter steps
+//   B) Only dictionary content → admit we don't know the process but
+//      reference what it is, then give guess-steps
+//   C) Nothing known → honest "i don't actually know how to do X",
+//      with a tongue-in-cheek disclaimer + brief generic-guess steps
+function generatePlan(subj, groups, wiki, wkt) {
   const verbs = _g(groups, "CapableOf").length ? groups.CapableOf : ["start","continue","stop","try","rest","pivot","retry"];
   const parts = _g(groups, "HasA");
   const rel = _g(groups, "RelatedTo");
   const v = () => pick(verbs);
 
-  // Pool of candidate step templates — assemble a plan from 4-8 of these
   const stepPool = [
     () => `decide you actually want to ${subj}.`,
     () => `prepare mentally. this takes longer than you'd think.`,
@@ -3363,18 +4514,68 @@ function generatePlan(subj, groups) {
     () => `done. maybe. celebrate quietly. very quietly.`
   ];
 
-  const n = 4 + Math.floor(Math.random() * 5);  // 4..8 steps
-  const shuffled = [...stepPool].sort(() => Math.random() - 0.5).slice(0, n);
-  const steps = shuffled.map((fn, i) => `${i + 1}. ${fn()}`);
+  const pickSteps = (n) => {
+    const shuffled = [...stepPool].sort(() => Math.random() - 0.5).slice(0, n);
+    return shuffled.map((fn, i) => `${i + 1}. ${fn()}`);
+  };
 
-  const headers = [
-    `HOW TO ${subj.toUpperCase()}:`,
-    `STEP-BY-STEP: ${subj}`,
-    `a guide to ${subj}, of sorts:`,
-    `plan for ${subj}. i mean, plan. that's generous.`
+  // ---- BRANCH A: wiki content available ----
+  if (wiki?.extract) {
+    const sents = wiki.extract.split(/(?<=[.!?])\s+/).filter(s => s.length > 10);
+    const lead = sents.slice(0, 2).join(" ");
+    const moreFacts = sents.slice(2, 5);  // could contain procedural info
+
+    const variants = [
+      () =>
+        `ok. ${subj}. first, what it actually is:\n\n${lead}\n\n` +
+        `now the steps. roughly:\n\n` +
+        pickSteps(4).join("\n") +
+        (moreFacts.length ? `\n\n(additionally: ${pick(moreFacts)})` : ""),
+
+      () =>
+        `HOW TO ${subj.toUpperCase()} (best i can do):\n\n` +
+        `background: ${lead}\n\n` +
+        pickSteps(5).join("\n") +
+        `\n\n(i'm mostly guessing on the order.)`,
+
+      () => {
+        // Try to sniff existing procedural words in wiki and quote them
+        const procSents = sents.filter(s => /\b(first|then|next|finally|after|before|step|process|method|typically|usually|generally|begin|start|end|result)\b/i.test(s));
+        if (procSents.length >= 2) {
+          const quoted = procSents.slice(0, 3).map((s, i) => `${i + 1}. (from the literature) ${s}`).join("\n");
+          return `${subj}. ok. the process — as best as i can transcribe:\n\n${quoted}\n\n(steps ${procSents.length + 1} onward: unknown to me. you're on your own.)`;
+        }
+        return `${subj}. here is what i know:\n\n${lead}\n\n` +
+               `as for the actual steps, i'd estimate:\n\n` +
+               pickSteps(4).join("\n");
+      }
+    ];
+
+    return dumbifyLong(pick(variants)() + "\n\n" + closer("plan"));
+  }
+
+  // ---- BRANCH B: only dictionary content ----
+  if (wkt) {
+    return dumbifyLong(
+      `${subj}. i know what it IS:\n\n${wkt}\n\n` +
+      `but the exact steps? foggy. my best guess:\n\n` +
+      pickSteps(4).join("\n") +
+      `\n\n(consult someone qualified before acting on this.)\n\n` +
+      closer("plan")
+    );
+  }
+
+  // ---- BRANCH C: nothing known — be honest about it ----
+  const honestDisclaimers = [
+    `ok. ${subj}. i will be honest: i don't actually know how to ${subj}. i looked. nothing came up. here is what i'd try:`,
+    `${subj}. hm. i don't know this one. my plan is essentially made up:`,
+    `you want to ${subj}. i respect the ambition. i have no idea how it's done. my guess:`,
+    `${subj}? i've never done it. nobody i know has done it. here's a confident guess:`,
+    `i do not know how to ${subj}. the below is entirely imagined. please do not follow it:`
   ];
 
-  return `${pick(headers)}\n\n${steps.join("\n")}\n\n${closer("plan")}`;
+  const steps = pickSteps(4 + Math.floor(Math.random() * 3));
+  return dumbifyLong(pick(honestDisclaimers) + "\n\n" + steps.join("\n") + "\n\n" + closer("plan"));
 }
 
 // ---------- CODE ----------
