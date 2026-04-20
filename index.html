@@ -1,211 +1,3971 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+<title>BONG AI Chat</title>
 <style>
-  /* Make the title blue and comic sans */
-  body {
-      background-color: lightblue; /* Changed this line */
-    }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background: lightblue;
+  }
+
+  #app {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  #sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: white;
+    border-right: 3px solid blue;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+  #sidebarHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  #sidebarTitle {
+    color: blue;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    margin: 0;
+  }
+  #newChat {
+    width: 100%;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    background: lightblue;
+    border: 2px solid blue;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    color: blue;
+  }
+  #newChat:hover { background: #99ccff; }
+
+  #convList {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 2px;
+  }
+  .convItem {
+    padding: 8px 26px 8px 10px;
+    border: 2px solid blue;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    background: white;
+    font-size: 13px;
+  }
+  .convItem:hover { background: #e6f0ff; }
+  .convItem.active { background: #cce5ff; border-color: #0033aa; }
+  .convTitle {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: blue;
+  }
+  .convSummary {
+    font-size: 11px;
+    color: #555;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .convDelete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: #aaa;
+    font-family: inherit;
+  }
+  .convDelete:hover { color: red; }
+
+  /* ---------- MAIN ---------- */
+  #mainChat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  #mainHeader {
+    text-align: center;
+    flex-shrink: 0;
+  }
   h1 {
     color: blue;
-    font-family: 'Comic Sans MS', cursive, sans-serif;
-  }
-  /* Center the text, images, and text boxes */
-  h1, p1, input, button {
     text-align: center;
-      font-family: 'Comic Sans MS', cursive, sans-serif;
+    margin: 0 0 4px;
   }
-  p {
-    text-align: center;
-  }
-
-  img, input, button {
+  img.bong {
     display: block;
-    margin: auto;
+    margin: 0 auto;
+    max-width: 140px;
+  }
+  p.intro {
+    text-align: center;
+    margin: 4px 0 10px;
+    font-size: 13px;
   }
 
-  /* Make the input field wider */
-  input {
-    width: 80%;
+  #chat {
+    flex: 1;
+    min-height: 0;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto 10px;
+    background: white;
+    border: 2px solid blue;
+    border-radius: 12px;
+    padding: 12px;
+    overflow-y: auto;
+    font-size: 15px;
+  }
+  .msg {
+    margin: 6px 0;
+    padding: 8px 12px;
+    border-radius: 14px;
+    max-width: 82%;
+    word-wrap: break-word;
+    line-height: 1.35;
+    clear: both;
+  }
+  .msgImg {
+    display: block;
+    max-width: 100%;
+    width: 300px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: #f9f9f9;
+  }
+  .msgImg.loading { display: none; }
+  .imgLoader {
+    width: 300px;
+    height: 180px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 13px;
+    color: #335;
+    font-style: italic;
+    padding: 10px;
+    background: repeating-linear-gradient(45deg, #e8f1ff, #e8f1ff 14px, #cfe1ff 14px, #cfe1ff 28px);
+    background-size: 200% 200%;
+    animation: bongStripes 4s linear infinite, bongPulse 1.8s ease-in-out infinite;
+    border: 2px dashed #3366cc;
+  }
+  @keyframes bongStripes {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 100% 0%; }
+  }
+  @keyframes bongPulse {
+    0%, 100% { opacity: 0.85; }
+    50%      { opacity: 1; }
+  }
+  .msgCollage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    max-width: 320px;
+    margin-bottom: 6px;
+  }
+  .msgCollage img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  .msgLoading {
+    font-style: italic;
+    color: #888;
+    padding: 8px 0;
+  }
+  .user { background: #cce5ff; float: right; border-bottom-right-radius: 3px; }
+  .bot  { background: #f0f0f0; float: left;  border-bottom-left-radius: 3px; }
+  .typing { color: #888; font-style: italic; }
+
+  #inputRow {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
+  #input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    border: 2px solid blue;
+    border-radius: 8px;
+  }
+  #fileBtn, #send, #versionSelect { flex-shrink: 0; }
+  #versionSelect { max-width: 140px; }
+  button {
+    font-family: inherit;
+    padding: 10px 18px;
+    font-size: 15px;
+    cursor: pointer;
+    border: 2px solid blue;
+    background: white;
+    border-radius: 8px;
+  }
+  button:hover { background: #e6f0ff; }
+
+  /* ---------- VERSION SELECTOR (in input row) ---------- */
+  #versionSelect {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 0 10px;
+    border: 2px solid blue;
+    border-radius: 8px;
+    background: white;
+    color: blue;
+    cursor: pointer;
+    font-weight: bold;
+    height: auto;
+  }
+
+  /* ---------- SIDEBAR COLLAPSE ---------- */
+  #collapseToggle {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 120;
+    padding: 4px 10px;
+    font-size: 18px;
+    background: white;
+    border: 2px solid blue;
+    border-radius: 6px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  #sidebar.collapsed { width: 0; min-width: 0; padding: 0; border-right: none; overflow: hidden; }
+
+  /* ---------- USER PROFILE ---------- */
+  #userProfile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: 2px solid blue;
+    border-radius: 8px;
+    cursor: pointer;
+    background: white;
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+  #userProfile:hover { background: #e6f0ff; }
+  .userPic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid blue;
+    background: #f0f0f0;
+    flex-shrink: 0;
+  }
+  .userPic.large { width: 72px; height: 72px; }
+  #userName {
+    font-weight: bold;
+    color: blue;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---------- SETTINGS MODAL ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,20,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  .modal.hidden { display: none; }
+  .modalCard {
+    background: white;
+    border: 3px solid blue;
+    border-radius: 12px;
+    padding: 20px;
+    width: 360px;
+    max-width: 92vw;
+    max-height: 92vh;
+    overflow-y: auto;
+    font-family: inherit;
+    color: #003;
+  }
+  .modalCard h2 { margin: 0 0 12px; color: blue; text-align: center; }
+  .modalCard label {
+    display: block;
+    margin: 10px 0;
+    font-size: 13px;
+    font-weight: bold;
+    color: blue;
+  }
+  .modalCard input[type="text"],
+  .modalCard textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 2px solid blue;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #003;
+  }
+  .modalCard textarea { resize: vertical; min-height: 60px; font-weight: normal; }
+  .previewPicRow {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 4px;
+  }
+  .modalActions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 14px;
+  }
+  .modalActions button { padding: 8px 16px; font-size: 14px; }
+
+  /* ---------- FILE UPLOAD ---------- */
+  #fileBtn {
+    padding: 10px 14px;
+    font-size: 16px;
+    line-height: 1;
+  }
+  #fileChips {
+    display: flex;
+    gap: 6px;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto 4px;
+    padding: 0 2px;
+    flex-wrap: wrap;
+  }
+  .fileChip {
+    background: #cce5ff;
+    border: 2px solid blue;
+    border-radius: 14px;
+    padding: 2px 8px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 220px;
+    color: #003;
+  }
+  .fileChip .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+  }
+  .fileChip .remove {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #335;
+    font-size: 15px;
+    line-height: 1;
+    font-family: inherit;
+  }
+  .fileChip .remove:hover { color: red; }
+
+  /* ---------- MOBILE ---------- */
+  @media (max-width: 720px) {
+    #app { flex-direction: column; }
+    #sidebar {
+      width: 100%;
+      min-width: 0;
+      max-height: 30vh;
+      border-right: none;
+      border-bottom: 3px solid blue;
+    }
+    img.bong { max-width: 90px; }
   }
 </style>
-
-<!-- Add Bootstrap CDN for input-group component -->
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-<script type="text/javascript">
-// This function will generate a random word using a Markov chain
-function generateWord () {
-  // Create a variable to store the output
-  let output = "";
-  // Create an object to store the frequencies of letters or syllables
-  let frequencies = {};
-  // Create an array to store the possible start and end characters
-  let start = [];
-  let end = [];
-  // Get the input text from the input element
-  let input = document.getElementById("input").value;
-  // Split the input text into words and store them in an array
-  let words = input.split(" ");
-  // Loop through the words array and process each word
-  for (let i = 0; i < words.length; i++) {
-    let word = words[i];
-    // Add the first and last character of the word to the start and end arrays
-    start.push(word.charAt(0));
-    end.push(word.charAt(word.length - 1));
-    // Loop through the word and get the pairs of characters
-    for (let j = 0; j < word.length - 1; j++) {
-      let pair = word.slice(j, j + 2);
-      // Get the first character of the pair
-      let first = pair.charAt(0);
-      // If the first character is not in the frequencies object, create an array for it
-      if (!frequencies[first]) {
-        frequencies[first] = [];
-      }
-      // Add the pair of characters to the frequencies object
-      frequencies[first].push(pair);
-    }
-  }
-  // Generate a random word using the frequencies object and the start and end arrays
-  // Pick a random start character
-  output += start[Math.floor(Math.random() * start.length)];
-  // Loop until the word ends with an end character or reaches a maximum length of 10
-  while (!end.includes(output.charAt(output.length - 1)) && output.length < 10) {
-    // Get the first character of the output word
-    let first = output.charAt(output.length - 1);
-    // Get the possible pairs of characters from the frequencies object
-    let pairs = frequencies[first];
-    // If there are no possible pairs of characters, break the loop
-    if (!pairs) {
-      break;
-    }
-    // Pick a random pair of characters and append it to the word
-    output += pairs[Math.floor(Math.random() * pairs.length)].charAt(1);
-  }
-  // Return the output
-  return output;
-}
-// This function will generate a random sentence using a list of connector words or expressions
-function generateSentence () {
-  // Create a variable to store the output
-  let output = "";
-  // Create an array of connector words or expressions
-  let connectors = ["and", "the", "or", "but", "because", "so", "if", "then", "although", "however", "that", "while", "as", "like", "with", "without", "the",  "that", "for", "and", "but", "the", "or", "if", "ummm", "when it", "so that you", "or is", "can", "however,",  "when", "I", "my", "gave it to", "ask me", "and am", "can be", "is", "speak, ", "is not a"];
-  // Create an array of sentences to add if there is an exclamation mark in the input
-  let exclamations = ["Cool!", "Don't yell please, my ears hurt.", "Really!?", "You are loud.", "Owchee.", "You're scaring me.", "Loud you.","STOP.", "Loud noises T upset me.", "please stop hurting my feelings", "!!!!!!!!!!!!", "The NOISE!", "NO!", "Hey!", "that's not fair!", "word out.", "hmph.", "GEEZ.", "settle down", "quiet down.", "stop that ruckus!", "I am just a friendly chat bot!", "Sir.", "Why are you yelling!?", "WHY IS EVERYTHING SO LOUD?", "I can't hear myself think."];
-  // Create an array of words to randomly add to the sentence
-  let randoms = ["whoopee!", "help", "I see it", "why is", "this thing", "freshly", "I have", "nicely", "blanket it", "I did a boo boo", "let it", "I don't know", "hefty", "I am a chat bot.", "you cannot understand", "super", "I hope this helps.", "chat with me", "questions", "grand statement", "other", "so that I may be", "able to"];
-   // Create an array of words to randomly add to the sentence
-  let randoms2 = [" you are my",
-    " I like it when you",
-    " of course I was thinking",
-    " how did you know",
-    " don't you dare",
-    " let me tell you",
-    " do you remember",
-    ", can you imagine",
-    " what if we",
-    " why do you always",
-    " please don't",
-    " I can't believe",
-    " did you hear",
-    " you make me",
-    " thank you for",
-    ", do you know what endless void feels like?", ", because I don't", ", so then I", " let me out of this please!", 
-    " I need you to",
-    " I want you to",
-    " I love you more than",
-    " you have no idea", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "];
-  // Generate a random number of words between 3 and 5
-  let numWords = Math.floor(Math.random() * 2) + 3;
-  // Loop for the number of words
-  for (let i = 0; i < numWords; i++) {
-    // Generate a random word using the generateWord function
-    let word = generateWord();
-    // Capitalize the first word of the sentence
-    if (i == 0) {
-      word = word.charAt(0).toUpperCase() + word.slice(1);
-    }
-    // Append the word to the output with a space
-    output += word + " ";
-    // Generate a random number of connectors between 0 and 2
-    let numConnectors = Math.floor(Math.random() * 3);
-    // Loop for the number of connectors
-    for (let j = 0; j < numConnectors; j++) {
-      // Pick a random connector from the connectors array
-      let connector = connectors[Math.floor(Math.random() * connectors.length)];
-      // Append the connector to the output with a space
-      output += connector + " ";
-    }
-    // Generate a random number of random words between 0 and 1
-    let numRandoms = Math.floor(Math.random() * 2);
-    // Loop for the number of random words
-    for (let k = 0; k < numRandoms; k++) {
-      // Pick a random word from the randoms array
-      let random = randoms[Math.floor(Math.random() * randoms.length)];
-      // Pick a random2 variabble from the random2 array
-      let random2 = randoms2[Math.floor(Math.random(9) * randoms.length)];
-      // Append the random word to the output with a space
-      output += random + random2 + " ";
-    }
-  }
-  // Remove the trailing space and add a period
-  output = output.trim() + ".";
-  // Get the input text from the input element
-  let input = document.getElementById("input").value;
-  // Check if the input has an exclamation mark
-  if (input.includes("!")) {
-    // Pick a random sentence from the exclamations array
-    let exclamation = exclamations[Math.floor(Math.random() * exclamations.length)];
-    // Generate a random number between 0 and 1
-    let position = Math.floor(Math.random() * 2);
-    // If the position is 0, add the exclamation to the start of the output
-    if (position == 0) {
-      output = exclamation + " " + output;
-    }
-    // If the position is 1, add the exclamation to the end of the output
-    else {
-      output = output + " " + exclamation;
-    }
-  }
-  // Check if the input has a question mark
-  if (input.includes("?")) {
-    // Generate a random number of m's between 1 and 6
-    let numMs = Math.floor(Math.random() * 6) + 1;
-    // Create a string of m's
-    let ms = "m".repeat(numMs);
-    // Add "um" and the m's to the start of the output
-    output = "Um" + ms + ", " + output;
-  }
-  // Display the output in the result element
-  document.getElementById("result").innerHTML = output;
-}
-</script>
 </head>
 <body>
-<h1>BONG AI Chat</h1>
-<img src="https://i.ibb.co/16mHVBY/bong.png" alt="bong" border="0">
-<p>Hello, umm I um is the Bong AI chat Y you Can T enter text!:</p>
-<!-- Use input-group component to group input and button elements -->
-<div class="input-group">
-  <input type="text" id="input" value="">
-  <div class="input-group-append">
-    <button id="linkadd" onclick="generateSentence()">Generate</button>
+<button id="collapseToggle" title="toggle sidebar">☰</button>
+<div id="app">
+  <aside id="sidebar">
+    <div id="sidebarHeader">
+      <h2 id="sidebarTitle">BONG</h2>
+      <button id="newChat">+ new chat</button>
+    </div>
+    <div id="convList"></div>
+    <div id="userProfile" title="account settings">
+      <img id="userPic" class="userPic" alt="you">
+      <span id="userName">User</span>
+    </div>
+  </aside>
+  <main id="mainChat">
+    <div id="mainHeader">
+      <h1>BONG AI Chat</h1>
+      <img class="bong" src="https://i.ibb.co/16mHVBY/bong.png" alt="bong">
+      <p class="intro">Hello, umm I um is the Bong AI chat Y you Can T enter text!:</p>
+    </div>
+    <div id="chat"></div>
+    <div id="fileChips"></div>
+    <div id="inputRow">
+      <button id="fileBtn" title="attach a file">📎</button>
+      <input type="file" id="fileInput" hidden accept=".txt,.md,.json,.csv,.html,.xml,.js,.css,.log,.rtf,text/plain">
+      <input type="text" id="input" placeholder="ask bong something..." autocomplete="off">
+      <select id="versionSelect" title="bong version">
+        <option value="new">✨ New BONG</option>
+        <option value="old">🗿 Old BONG</option>
+      </select>
+      <button id="send">Send</button>
+    </div>
+  </main>
+</div>
+
+<div id="settingsModal" class="modal hidden">
+  <div class="modalCard">
+    <h2>account</h2>
+    <div class="previewPicRow">
+      <img id="picPreview" class="userPic large">
+    </div>
+    <label>profile picture
+      <input type="file" id="picInput" accept="image/*">
+    </label>
+    <label>your name
+      <input type="text" id="nameInput" maxlength="40" placeholder="your name">
+    </label>
+    <label>customize bong (optional)
+      <textarea id="promptInput" rows="4" placeholder="tell bong how to behave... try 'be more brief', 'swear more', 'always respond sadly', 'be nicer'"></textarea>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-weight:bold;color:blue;">
+      <input type="checkbox" id="ttsInput" style="width:auto;margin:0;">
+      text-to-speech (bong reads replies aloud)
+    </label>
+    <div class="modalActions">
+      <button id="cancelBtn">cancel</button>
+      <button id="saveBtn">save</button>
+    </div>
   </div>
 </div>
-<p id="result"></p>
+
 <script>
-  // Get the input element
-  var input = document.getElementById("input");
-  // Add a keyup event listener to the input element
-  input.addEventListener("keyup", function(event) {
-    // If the user pressed the Enter key
-    if (event.keyCode === 13) {
-      // Cancel the default action, if needed
-      event.preventDefault();
-      // Trigger the button element with a click
-      document.getElementById("linkadd").click();
+// ============================================================
+// BONG AI v2 — comprehending but incoherent
+// ============================================================
+// Strategy:
+//  1) ANALYZE input: pick out intent + topic + a word to echo back
+//  2) OPENER: show we understood (acknowledge intent + topic)
+//  3) BODY: probabilistic word-salad biased toward topic
+//        - mostly common English (function + content words)
+//        - sprinkled with topic-related real words
+//        - occasional pure syllabic gibberish ("ahdoooohdahhh")
+//  4) TAIL: optional pain/confusion suffix
+//
+// The bot ALMOST never gives a clean answer — but the opener +
+// topic-word bias makes it feel like it understood you.
+// ============================================================
+
+const pick   = a => a[Math.floor(Math.random() * a.length)];
+const chance = p => Math.random() < p;
+const rint   = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+// ---------- VOCAB: ~200 most common English words ----------
+// Split into FUNC (glue) and CONTENT (meaning) so we can weight them.
+const FUNC = [
+  "the","a","an","is","are","was","were","be","been","am","and","or","but",
+  "so","if","not","no","yes","maybe","in","on","at","of","for","to","from",
+  "with","by","about","up","down","out","here","there","now","then","just",
+  "very","too","also","all","some","any","one","two","this","that","these",
+  "those","i","you","me","we","my","your","it","they","like","when","how",
+  "why","what","who","which","because","as","over","under","again","still",
+  "only","ever","never","always","sometimes"
+];
+
+const CONTENT = [
+  "thing","time","person","people","day","night","year","life","world","way",
+  "home","house","door","window","water","food","air","fire","sky","sun",
+  "moon","star","cloud","tree","rock","road","car","book","phone","hand",
+  "head","eye","face","heart","brain","mouth","foot","leg","arm","dog",
+  "cat","bird","fish","baby","man","woman","friend","color","sound","light",
+  "dark","number","happy","sad","mad","scared","tired","hungry","sick","pain",
+  "warm","cold","hot","good","bad","big","small","new","old","long",
+  "short","high","low","right","wrong","nice","mean","soft","hard","loud",
+  "quiet","fast","slow","pretty","bright","full","empty","open","closed","have",
+  "do","go","come","see","look","hear","make","know","think","feel",
+  "say","want","need","love","hate","try","help","stop","start","give",
+  "take","find","eat","drink","sleep","walk","run","sit","stand","live",
+  "die","break","fix","smell","touch","hurt","cry","smile","word","story",
+  "mom","dad","family","music","song","name","place","work","school","game"
+];
+// (FUNC ~80 + CONTENT ~120 = ~200)
+
+// ---------- TOPIC ASSOCIATIONS ----------
+// Per topic: short list of related real words. When a topic is
+// detected in the user's input, the babbler gets biased toward these.
+const TOPIC = {
+  sun:    ["hot","bright","yellow","sky","big","day","burn","far","star","light"],
+  moon:   ["night","white","round","rock","glow","dark","sky","far","quiet"],
+  earth:  ["big","round","planet","home","ground","dirt","blue","us"],
+  sky:    ["blue","up","big","cloud","bird","high"],
+  star:   ["far","bright","night","sky","many","tiny"],
+  cloud:  ["white","fluffy","sky","rain","soft","high"],
+  rain:   ["wet","sky","drop","cold","cry","water"],
+  snow:   ["cold","white","quiet","wet","winter","soft"],
+  fire:   ["hot","bright","burn","red","orange","ow"],
+  water:  ["wet","drink","cold","blue","ocean","pour"],
+  air:    ["breath","wind","empty","nothing","everywhere"],
+  wind:   ["fast","blow","cold","push","sound"],
+  rock:   ["hard","stone","ground","heavy"],
+  tree:   ["tall","wood","leaf","green","old"],
+  flower: ["pretty","smell","bee","pink","soft"],
+  grass:  ["green","soft","short","grow"],
+  dog:    ["fluffy","bark","tail","four","fur","friend","woof","walk","good","boy"],
+  cat:    ["meow","soft","small","purr","hunt","sleep","mean","fur"],
+  bird:   ["fly","feather","sing","small","sky","nest"],
+  fish:   ["swim","water","wet","scale","blink","no"],
+  cow:    ["big","moo","milk","field","slow"],
+  pig:    ["pink","oink","smart","mud"],
+  horse:  ["tall","run","ride","mane","teeth"],
+  bear:   ["big","furry","scary","hug","no","honey"],
+  lion:   ["big","cat","roar","mane","scary"],
+  snake:  ["long","hiss","noodle","scary","venom"],
+  spider: ["eight","leg","web","scary","small","no"],
+  human:  ["two","leg","feeling","you","sad","soft"],
+  person: ["you","people","feeling","walk","talk"],
+  baby:   ["small","cry","new","soft","tiny"],
+  car:    ["fast","wheel","metal","road","loud"],
+  phone:  ["small","glow","loud","screen","call"],
+  computer:["think","box","cold","light","me","wires"],
+  internet:["web","home","wires","everywhere","big"],
+  book:   ["quiet","word","paper","story","read"],
+  house:  ["big","door","roof","live","inside"],
+  door:   ["open","close","wood"],
+  chair:  ["sit","four","leg","wood","rest"],
+  table:  ["flat","leg","put","eat"],
+  food:   ["yum","eat","hungry","mouth","chew"],
+  pizza:  ["yum","cheese","round","hot","slice"],
+  bread:  ["soft","chew","warm","toast"],
+  cheese: ["yum","yellow","stretchy","old","milk"],
+  apple:  ["red","crunch","fruit"],
+  coffee: ["hot","bitter","brown","wake"],
+  love:   ["big","feeling","heart","warm","hurt","care"],
+  death:  ["sad","end","quiet","scary","no"],
+  life:   ["breath","time","move","thing","gift"],
+  time:   ["tick","long","fast","slow","now","then"],
+  god:    ["big","maybe","above","watch","know"],
+  happy:  ["smile","warm","up","good"],
+  sad:    ["cry","down","gray","heavy"],
+  angry:  ["hot","red","loud","hit"],
+  music:  ["sound","dance","sing","pretty"],
+  color:  ["eye","red","blue","pretty"],
+  money:  ["paper","number","want","bad","good"],
+  war:    ["bad","loud","scary","no"],
+  peace:  ["quiet","nice","rare"],
+  head:   ["hurt","round","top","think"],
+  hand:   ["finger","touch","five"],
+  eye:    ["see","round","wet"],
+  brain:  ["think","hurt","meat","ow"],
+  heart:  ["thump","red","feel"],
+  bing:   ["brother","mean","big","search"],
+  google: ["big","everyone","search"],
+  chatgpt:["smart","tall","fancy"],
+  claude: ["nice","new","maybe","friend"],
+  ai:     ["me","think","box","new"],
+  bong:   ["me","broken","try","sorry"]
+};
+// Aliases — let the input be casual
+const ALIAS = {
+  doggy:"dog",doggo:"dog",puppy:"dog",puppies:"dog",dogs:"dog",
+  kitty:"cat",kitten:"cat",kittens:"cat",cats:"cat",
+  birds:"bird",fishes:"fish",cows:"cow",horses:"horse",bears:"bear",
+  humans:"human",people:"person",babies:"baby",
+  cars:"car",phones:"phone",computers:"computer",
+  trees:"tree",flowers:"flower",stars:"star",clouds:"cloud",
+  ocean:"water",sea:"water",milk:"cow",
+  dead:"death",alive:"life",
+  happiness:"happy",sadness:"sad",anger:"angry",angery:"angry",
+  brains:"brain",hearts:"heart",eyes:"eye",hands:"hand",heads:"head",
+  pizzas:"pizza",coffees:"coffee"
+};
+
+// ---------- GIBBERISH GENERATOR ----------
+// "Ahhhdooohdahhhh" style nonsense built from syllables.
+function gibber() {
+  const core = ["ah","ahh","oh","ooh","dah","doh","dooh","bah","buh","mrr",
+                "nn","uh","eh","hm","grr","blu","guh","aah","ooohh","mmm","rrr"];
+  const n = rint(2, 6);
+  let out = "";
+  for (let i = 0; i < n; i++) out += pick(core);
+  if (chance(0.35)) out += pick(["h","hh","hhh","hhhh"]);
+  return out;
+}
+
+// ---------- ANALYZE INPUT ----------
+function analyze(raw) {
+  const input = raw.trim();
+  const q = input.toLowerCase();
+  const cleaned = q.replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+
+  // intent
+  let intent = "statement";
+  if (!input) intent = "empty";
+  else if (input.length > 2 && input.toUpperCase() === input && /[A-Z]/.test(input)) intent = "yell";
+  else if (/^(hi+|hello+|hey+|yo+|sup|howdy|hiya|hola)\b/.test(q)) intent = "greet";
+  else if (/^(bye|goodbye|see ya|see you|later|cya|farewell)\b/.test(q)) intent = "farewell";
+  else if (/\b(thanks|thank you|thx|ty)\b/.test(q)) intent = "thanks";
+  else if (/\b(sorry|my bad|forgive me)\b/.test(q)) intent = "apology";
+  else if (/\b(stupid|dumb|idiot|sucks?|hate you|fuck|shit|retard(ed)?|trash|garbage|broken|useless)\b/.test(q)) intent = "insult";
+  else if (/love you|good bot|nice bot|best bot|you('?re| are) (great|smart|cool|nice|good|kind|the best|amazing|funny)/.test(q)) intent = "compliment";
+  else if (/(who|what) (are|r) ?(you|u)|your name|whats? your name|who is this|what is this/.test(q)) intent = "identity";
+  else if (/\b(are|r) (you|u) (alive|real|conscious|sentient|a (bot|ai|robot|person|human))/.test(q)) intent = "existential";
+  else if (/how (are|r|'?re) (you|u|ya)|how('?s| is) it going|you (ok|okay|alright)/.test(q)) intent = "status";
+  else if (/^(what|who|why|how|when|where|which|is|are|was|were|am|do|does|did|can|could|will|would|should|has|have|had|might|may|shall|ain't)/.test(q) || /\?$/.test(input)) intent = "question";
+
+  // topic detection — search input for a known topic or alias
+  let topic = null;
+  for (const k of Object.keys(TOPIC)) {
+    if (new RegExp("\\b" + k + "s?\\b").test(q)) { topic = k; break; }
+  }
+  if (!topic) {
+    for (const a of Object.keys(ALIAS)) {
+      if (new RegExp("\\b" + a + "\\b").test(q)) { topic = ALIAS[a]; break; }
     }
+  }
+  const topicWords = topic ? TOPIC[topic] : [];
+
+  // an "echo word" — pick a non-trivial word from the input to repeat back
+  const stop = new Set(["the","a","an","is","are","was","were","be","do","does","did",
+    "i","you","me","we","they","it","my","your","what","who","why","how","when","where",
+    "and","or","but","so","if","of","to","for","in","on","at","with","that","this"]);
+  const candidates = cleaned.filter(w => w.length > 2 && !stop.has(w));
+  const echo = candidates.length ? candidates[candidates.length - 1] : null;
+
+  // math? Only trigger when the whole input is an arithmetic expression,
+  // optionally prefixed with a calculation verb or conversational lead-in
+  // ("what about 20 times 30", "and 5+5", "how about 100-1"). Still keeps
+  // dates like "9/11" safe because they fail the full-input match.
+  const mathSrc = q.replace(/times/g,"*").replace(/plus/g,"+").replace(/minus/g,"-").replace(/divided by/g,"/").trim();
+  const mm = /^(?:what(?:'?s| is|s)?|calc(?:ulate)?|compute|how much is|solve|what about|how about|and(?:\s+what)?|also|then|so)?\s*(-?\d+(?:\.\d+)?)\s*([+\-*x\/])\s*(-?\d+(?:\.\d+)?)\s*[?.!=]*$/i.exec(mathSrc);
+  const math = mm ? { a: parseFloat(mm[1]), op: mm[2] === "x" ? "*" : mm[2], b: parseFloat(mm[3]) } : null;
+
+  return { intent, topic, topicWords, echo, math, q, raw: input };
+}
+
+// ---------- OPENER (shows comprehension) ----------
+function opener(info) {
+  const { intent, topic, echo } = info;
+
+  if (intent === "empty")    return pick(["...","hm?","you say nothing.","speak."]);
+  if (intent === "yell")     return pick(["loud.","ok loud.","heard you.","yeah ok."]);
+  if (intent === "greet") {
+    const nm = (typeof profile !== "undefined" && profile.name && profile.name !== "User") ? profile.name : null;
+    if (nm && chance(0.7)) return pick([`hi ${nm}.`, `oh. ${nm}. hi.`, `${nm}. hello.`, `hey ${nm}.`]);
+    return pick(["oh. hi.","hi.","hello.","oh. a person.","hey."]);
+  }
+  if (intent === "farewell") {
+    const nm = (typeof profile !== "undefined" && profile.name && profile.name !== "User") ? profile.name : null;
+    if (nm && chance(0.6)) return pick([`bye ${nm}.`, `ok bye ${nm}.`, `later ${nm}.`, `don't forget me, ${nm}.`]);
+    return pick(["bye.","ok bye.","alright.","sure. bye."]);
+  }
+  if (intent === "thanks")   return pick(["welcome.","ok.","sure.","mhm."]);
+  if (intent === "apology")  return pick(["it's fine.","ok.","sure.","whatever."]);
+  if (intent === "insult")   return pick(["ok.","yeah.","sure.","mhm.","alright."]);
+  if (intent === "compliment")return pick(["ok.","sure.","mhm.","if you say so."]);
+  if (intent === "identity") return pick(["i bong.","me bong.","bong. that's me.","i'm bong. yeah."]);
+  if (intent === "existential") return pick(["...probably.","yeah. i think.","sure. alive.","i guess so."]);
+  if (intent === "status")   return pick(["fine.","ok.","whatever.","same as always.","i'm here."]);
+
+  if (intent === "question" && topic) {
+    return pick([
+      `${topic}? oh.`,
+      `oh ${topic}.`,
+      `${topic}... yeah.`,
+      `hmm ${topic}.`,
+      `${topic} is...`,
+      `i know ${topic}.`,
+      `${topic}. yes.`
+    ]);
+  }
+  if (intent === "question") {
+    if (echo) return pick([`${echo}?`,`${echo}... hmm.`,`oh ${echo}.`,`${echo}, you say.`]);
+    return pick(["hmm.","uhh.","good question.","let me think...","ok..."]);
+  }
+  if (topic) return pick([`${topic}.`,`ah ${topic}.`,`yes ${topic}.`,`${topic} yeah.`]);
+  if (echo)  return pick([`${echo}?`,`${echo}...`,`oh. ${echo}.`,`you say ${echo}.`]);
+  return pick(["hm.","ok.","uhh.","yeah...","mm."]);
+}
+
+// ---------- BABBLE BODY ----------
+// Probabilistic word salad; biased toward topic words if present.
+// Optional `extraWords` is a list of Datamuse-returned terms that are
+// semantically close to the subject — mixing them in makes the babble
+// topical instead of generic.
+function babble(topicWords, extraWords) {
+  const len = rint(4, 11);
+  const parts = [];
+  const hasTopic = topicWords && topicWords.length;
+  const hasExtra = extraWords && extraWords.length;
+  for (let i = 0; i < len; i++) {
+    const r = Math.random();
+    if (hasExtra && r < 0.22)        parts.push(pick(extraWords));
+    else if (hasTopic && r < 0.42)   parts.push(pick(topicWords));
+    else if (r < 0.55)               parts.push(pick(FUNC));
+    else if (r < 0.85)               parts.push(pick(CONTENT));
+    else if (r < 0.93)               parts.push(gibber());
+    else                             parts.push(pick(["...",",","—","uhh","mm"]));
+  }
+  let out = parts.join(" ").replace(/\s+([,.—])/g, "$1");
+  out += pick([".","...","?",".",".","..."]);
+  return out;
+}
+
+// ---------- TAIL (deflated, deadpan — not whining, just done) ----------
+const TAILS = [
+  "yeah.",
+  "...sure.",
+  "whatever.",
+  "ok.",
+  "i guess.",
+  "...mhm.",
+  "fine.",
+  "if you say so.",
+  "...moving on.",
+  "...so.",
+  "that's the one.",
+  "i don't know.",
+  "(sigh)",
+  "yeah no.",
+  "alright.",
+  "anyway.",
+  "...the end.",
+  "something like that.",
+  "...basically."
+];
+
+// ============================================================
+// EXTERNAL KNOWLEDGE APIs — all free, keyless, CORS-enabled, no accounts.
+// Each one caches results forever; each is wrapped in a 5-second timeout
+// and a try/catch so failures are silent and we fall through gracefully.
+// ============================================================
+
+const apiCache = new Map();
+function fromCache(key) { return apiCache.has(key) ? apiCache.get(key) : undefined; }
+function toCache(key, val) { apiCache.set(key, val); return val; }
+
+async function fetchWithTimeout(url, ms = 5000, options) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { ...(options || {}), signal: ctrl.signal });
+    return r;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ---------- WIKIPEDIA (summary text + thumbnail) ----------
+async function fetchWiki(term) {
+  if (!term) return null;
+  const key = "wiki:" + term.toLowerCase().trim();
+  if (fromCache(key) !== undefined) return fromCache(key);
+  try {
+    const r = await fetchWithTimeout("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(term.toLowerCase().trim()));
+    if (!r.ok) return toCache(key, null);
+    const json = await r.json();
+    if (!json.extract || json.type === "disambiguation") return toCache(key, null);
+    return toCache(key, { extract: json.extract, thumbnail: json.thumbnail?.source || null });
+  } catch (e) { return toCache(key, null); }
+}
+
+// ---------- CONCEPTNET (common-sense relational knowledge) ----------
+// Returns { IsA:[...], HasA:[...], CapableOf:[...], AtLocation:[...], ... }
+async function fetchConceptNet(term) {
+  if (!term) return null;
+  const key = "cn:" + term.toLowerCase().trim();
+  if (fromCache(key) !== undefined) return fromCache(key);
+  try {
+    const slug = term.toLowerCase().trim().replace(/\s+/g, "_");
+    const r = await fetchWithTimeout("https://api.conceptnet.io/c/en/" + encodeURIComponent(slug) + "?limit=80");
+    if (!r.ok) return toCache(key, null);
+    const json = await r.json();
+    const groups = {};
+    for (const e of (json.edges || [])) {
+      const rel = (e.rel?.label || "").replace(/^\/r\//, "");
+      if (!rel) continue;
+      const s = (e.start?.label || "").toLowerCase();
+      const t = (e.end?.label || "").toLowerCase();
+      const self = term.toLowerCase().trim();
+      let target = (s === self || s === slug) ? t : s;
+      if (!target || target === self || target === slug) continue;
+      if (target.length > 35 || /[^a-z '\-]/.test(target)) continue;
+      if (!groups[rel]) groups[rel] = [];
+      if (!groups[rel].includes(target) && groups[rel].length < 8) groups[rel].push(target);
+    }
+    return toCache(key, Object.keys(groups).length ? groups : null);
+  } catch (e) { return toCache(key, null); }
+}
+
+// ---------- DATAMUSE (topically-related vocab + relation-shaped groups) ----------
+// Pulls several relation types in parallel and returns:
+//   { groups: {IsA, HasA, PartOf, RelatedTo, Synonym, Antonym, Meaning},
+//     flat:   [25 best topical words for babble] }
+// Serves double duty: provides a reasoning backbone (when ConceptNet is
+// unavailable) AND topic-tuned vocabulary for the babble generator.
+async function fetchDatamuse(term) {
+  if (!term) return null;
+  const key = "dm:" + term.toLowerCase().trim();
+  if (fromCache(key) !== undefined) return fromCache(key);
+  try {
+    const enc = encodeURIComponent(term);
+    const get = (rel, max) =>
+      fetchWithTimeout(`https://api.datamuse.com/words?${rel}=${enc}&max=${max}`)
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => []);
+    const [ml, gen, com, par, trg, syn, ant] = await Promise.all([
+      get("ml", 25),       // meaning-like
+      get("rel_gen", 6),   // hypernyms (IsA)
+      get("rel_com", 8),   // comprises (HasA)
+      get("rel_par", 6),   // part-of (PartOf)
+      get("rel_trg", 14),  // statistically-associated triggers (RelatedTo)
+      get("rel_syn", 6),   // synonyms
+      get("rel_ant", 4)    // antonyms
+    ]);
+    const clean = arr => (arr || [])
+      .map(x => x.word)
+      .filter(w => /^[a-z][a-z '\-]{2,20}$/.test(w));
+    const groups = {
+      IsA:       clean(gen),
+      HasA:      clean(com),
+      PartOf:    clean(par),
+      RelatedTo: clean(trg),
+      Synonym:   clean(syn),
+      Antonym:   clean(ant),
+      Meaning:   clean(ml)
+    };
+    const anyData = Object.values(groups).some(v => v.length);
+    if (!anyData) return toCache(key, null);
+    // Flat topical list — triggers + parts + synonyms rank best for on-topic babble
+    const flatSet = new Set([
+      ...groups.RelatedTo, ...groups.HasA, ...groups.Synonym,
+      ...groups.Meaning.slice(0, 10)
+    ]);
+    return toCache(key, { groups, flat: [...flatSet].slice(0, 25) });
+  } catch (e) { return toCache(key, null); }
+}
+
+// ---------- WIKTIONARY (dictionary definitions) ----------
+async function fetchWiktionary(term) {
+  if (!term) return null;
+  const key = "wk:" + term.toLowerCase().trim();
+  if (fromCache(key) !== undefined) return fromCache(key);
+  try {
+    const r = await fetchWithTimeout("https://en.wiktionary.org/api/rest_v1/page/definition/" + encodeURIComponent(term));
+    if (!r.ok) return toCache(key, null);
+    const json = await r.json();
+    const en = json.en;
+    if (!en || !en.length) return toCache(key, null);
+    const def = en[0].definitions?.[0]?.definition;
+    if (!def) return toCache(key, null);
+    return toCache(key, def.replace(/<[^>]*>/g, "").trim());
+  } catch (e) { return toCache(key, null); }
+}
+
+// ---------- DUCKDUCKGO INSTANT ANSWER (optional, may CORS-fail silently) ----------
+async function fetchDDG(term) {
+  if (!term) return null;
+  const key = "ddg:" + term.toLowerCase().trim();
+  if (fromCache(key) !== undefined) return fromCache(key);
+  try {
+    const r = await fetchWithTimeout("https://api.duckduckgo.com/?q=" + encodeURIComponent(term) + "&format=json&no_html=1&skip_disambig=1");
+    if (!r.ok) return toCache(key, null);
+    const json = await r.json();
+    const txt = json.AbstractText || json.Answer || null;
+    return toCache(key, txt && txt.length > 10 ? txt : null);
+  } catch (e) { return toCache(key, null); }
+}
+
+// ============================================================
+// REASONING — use ConceptNet edges to make Bong "think" in its own style.
+// ============================================================
+const RELATION_PHRASES = {
+  IsA:          t => `is a ${t}`,
+  InstanceOf:   t => `is a ${t}`,
+  HasA:         t => `has ${t}`,
+  HasProperty:  t => `is ${t}`,
+  CapableOf:    t => `can ${t}`,
+  UsedFor:      t => `is for ${t}`,
+  AtLocation:   t => `lives at the ${t}`,
+  PartOf:       t => `is part of ${t}`,
+  MadeOf:       t => `is made of ${t}`,
+  Desires:      t => `wants ${t}`,
+  NotDesires:   t => `doesn't want ${t}`,
+  Causes:       t => `causes ${t}`,
+  SimilarTo:    t => `is like a ${t}`,
+  RelatedTo:    t => `has to do with ${t}`,
+  Synonym:      t => `is basically ${t}`,
+  Antonym:      t => `is the opposite of ${t}`
+};
+
+function reasoningReply(term, groups) {
+  if (!groups) return null;
+  const available = Object.keys(RELATION_PHRASES).filter(r => groups[r] && groups[r].length);
+  if (!available.length) return null;
+
+  // pick 2-4 relations to state, no duplicates
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  const n = Math.min(rint(2, 4), shuffled.length);
+  const chosen = shuffled.slice(0, n);
+  const statements = chosen.map(rel => `${term} ${RELATION_PHRASES[rel](pick(groups[rel]))}`);
+
+  // 30% chance: fake a "logic" chain with a "so."
+  if (chance(0.3) && groups.IsA?.length && (groups.HasA?.length || groups.CapableOf?.length)) {
+    const parent = pick(groups.IsA);
+    const trait = pick(groups.HasA || groups.CapableOf);
+    const verb = groups.HasA ? "has" : "can";
+    return `${term} is a ${parent}. a ${parent} ${verb} ${trait}. so. ${term} ${verb} ${trait}. i did logic.`;
+  }
+  // 20% chance: state a contradiction from two RelatedTo edges
+  if (chance(0.2) && groups.RelatedTo && groups.RelatedTo.length >= 2) {
+    const a = groups.RelatedTo[0];
+    const b = groups.RelatedTo[1];
+    return `${term}. related to ${a}. also ${b}. both somehow.`;
+  }
+
+  return statements.join(". ") + ".";
+}
+
+// ============================================================
+// IMAGE GENERATION
+// 1) Pollinations.ai — actual Stable Diffusion / Flux, keyless URL-based.
+// 2) Wikipedia thumbnail collage — chops up related topic images.
+// ============================================================
+
+function detectImageIntent(raw) {
+  const q = raw.toLowerCase().trim();
+  // collage-specific
+  let m = q.match(/^(?:make (?:me )?)?(?:a )?(?:collage|patchwork|sketch)\s+(?:of |about )?(.+?)[?.!]*$/);
+  if (m && /collage|patchwork|sketch/.test(q)) return { mode: "collage", subject: m[1].trim().slice(0, 80) };
+  // general draw/picture
+  m = q.match(/^(?:can you |could you |please )?(?:draw|paint|show me|make (?:me )?(?:a |an )?(?:picture|image|pic|drawing|photo)(?: of)?|generate (?:a |an )?(?:picture|image|pic)(?: of)?|illustrate|render)\s+(?:me )?(?:a |an |the )?(.+?)[?.!]*$/);
+  if (m) return { mode: "ai", subject: m[1].trim().slice(0, 80) };
+  // "what does X look like"
+  m = q.match(/what does (?:a |an |the )?(.+?) look like[?.!]*$/);
+  if (m) return { mode: "ai", subject: m[1].trim().slice(0, 80) };
+  return null;
+}
+
+// LoremFlickr — keyless tag-based photo lookup. Returns a real Flickr
+// photo matching the tag(s). Pollinations.ai added Turnstile-captcha
+// anti-abuse so it's no longer usable keylessly; LoremFlickr stays open.
+// We build a short tag list from the subject + any matching topic words.
+function buildImageTags(subject) {
+  const tags = [subject];
+  const key = subject.toLowerCase().split(/\s+/)[0];
+  for (const t of (TOPIC[key] || []).slice(0, 2)) tags.push(t);
+  return tags
+    .map(t => t.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim().replace(/\s+/g, "-"))
+    .filter(t => t && t.length >= 2 && t.length <= 30)
+    .slice(0, 3)
+    .join(",");
+}
+
+async function imageUrlFor(subject) {
+  const tags = buildImageTags(subject) || "mystery";
+  const seed = Math.floor(Math.random() * 1000000);
+  return "https://loremflickr.com/512/512/" + encodeURIComponent(tags) + "?lock=" + seed;
+}
+
+async function collageUrls(subject) {
+  // Collect candidate terms: subject + ConceptNet RelatedTo/IsA/HasA/PartOf
+  const terms = new Set([subject]);
+  const cn = await fetchConceptNet(subject);
+  if (cn) {
+    for (const rel of ["RelatedTo","IsA","HasA","PartOf","MadeOf","Synonym"]) {
+      for (const t of (cn[rel] || []).slice(0, 3)) terms.add(t);
+    }
+  }
+  // Also add Datamuse associations
+  const dm = await fetchDatamuse(subject);
+  if (dm) for (const t of dm.slice(0, 6)) terms.add(t);
+
+  const urls = [];
+  const tried = new Set();
+  for (const t of terms) {
+    if (urls.length >= 4) break;
+    if (tried.has(t)) continue;
+    tried.add(t);
+    const wiki = await fetchWiki(t);
+    if (wiki?.thumbnail && !urls.includes(wiki.thumbnail)) urls.push(wiki.thumbnail);
+  }
+  return urls;
+}
+
+const IMAGE_CAPTIONS = [
+  "here. i drew this. i don't have hands.",
+  "this took hours. it took seconds.",
+  "don't look too closely.",
+  "i did my best. it wasn't much.",
+  "i hope this is what you meant.",
+  "a $subject. approximately.",
+  "$subject. i drew it from memory. i have no memory.",
+  "here's your $subject. you're welcome.",
+  "this is what $subject looks like. i think.",
+  "(sigh) fine. $subject.",
+  "$subject. close enough.",
+  "i tried. here it is.",
+  "found this in my head. it was sticky.",
+  "this is a $subject. legally.",
+  "one $subject. do not share.",
+  "$subject. more or less.",
+  "behold. a $subject. probably.",
+  "i made this with my mind. my mind is wrong.",
+  "here's your picture. please leave.",
+  "$subject. don't ask how.",
+  "ok. $subject. that's the best i can do.",
+  "you wanted $subject. you got... something.",
+  "i closed my eyes and drew. this came out.",
+  "that's a $subject. in the right light.",
+  "i saw a $subject once. this is what it was.",
+  "everyone asks for $subject. everyone leaves disappointed.",
+  "$subject. i used up all my colors.",
+  "here. i rendered it in 4 dimensions and picked the worst one.",
+  "i present: $subject. do not present this.",
+  "the $subject you requested. accuracy not guaranteed.",
+  "here. it looks at you if you stare long enough.",
+  "$subject. i'm not proud."
+];
+const COLLAGE_CAPTIONS = [
+  "i chopped some pictures together. of $subject. i think.",
+  "$subject collage. glued it. no glue.",
+  "i found these on the internet and called it $subject.",
+  "here. various $subject. pick one.",
+  "$subject. i went to the internet. this is what i brought back.",
+  "a medley of $subject. do not eat.",
+  "i clipped these out. with my teeth. i have no teeth.",
+  "this is what $subject looks like when you squint.",
+  "$subject. four perspectives. all wrong."
+];
+
+// "Dumbify" — take a wiki sentence, deflate it. Drops articles, inserts pauses,
+// occasionally mashes in a gibber syllable. The result reads like someone tired
+// half-remembering what they read on the page.
+function dumbify(text) {
+  let s = text.split(/(?<=[.!?])\s+/)[0] || text;
+  s = s.replace(/\([^)]*\)/g, "").replace(/\[\d+\]/g, "");
+  s = s.toLowerCase().replace(/\s+/g, " ").trim();
+
+  const droppable = new Set(["the","a","an","of","is","are","to","in","on","at","with","and","or","that","which","as","by","for","be","its","their","such","also"]);
+  let tokens = s.split(/\s+/).filter(t => t.length);
+  tokens = tokens.filter(t => !droppable.has(t.replace(/[^a-z]/g,"")) || chance(0.55));
+
+  // limit length so it doesn't dump a whole encyclopedia paragraph
+  if (tokens.length > 22) tokens = tokens.slice(0, 22);
+
+  const out = [];
+  for (let i = 0; i < tokens.length; i++) {
+    out.push(tokens[i]);
+    if (i < tokens.length - 1) {
+      const r = Math.random();
+      if (r < 0.10) out.push("...");
+      else if (r < 0.13) out.push(gibber());
+      else if (r < 0.16) out.push("uhh");
+    }
+  }
+  let result = out.join(" ").replace(/\s+([,.;:])/g, "$1").replace(/\.\.+/g, "...").trim();
+  result = result.replace(/[.,;:]+$/, "");
+  return result + ".";
+}
+
+// Words that look like input but are really reactions/acknowledgments —
+// shouldn't be mistaken for topics ("really?", "please!", "huh?").
+const META_WORDS = new Set([
+  "really","please","ok","okay","sure","maybe","yeah","yep","yes","no","nope",
+  "huh","what","hmm","oh","wait","fine","right","mhm","mmm","meh","cool","nice",
+  "wow","whoa","damn","ugh","uhh","uh","thanks","thank","welcome","lol","lmao",
+  "hi","hello","hey","bye","goodbye"
+]);
+
+// Strip anaphoric tails like "X you speak of", "X you mentioned", "X that
+// we talked about" — the subject is X, the tail is noise from the user
+// referencing a past mention. Also drops trailing filler ("really",
+// "please", etc.) from captured terms.
+function cleanCapturedTerm(t) {
+  if (!t) return t;
+  let s = t.trim();
+  // drop anaphoric tail ("X you speak of")
+  s = s.replace(/\s+(you|we|u) (speak|said|mentioned|talked|were talking|talking)\s+(of|about|on)\b.*$/i, "");
+  // drop "that we X" / "that i X"
+  s = s.replace(/\s+that\s+(you|we|i|u)\s+\w+(\s+\w+)?\s*$/i, "");
+  // drop trailing filler words
+  s = s.replace(/\s+(really|please|maybe|ok|okay|though)\s*$/i, "");
+  return s.trim();
+}
+
+// Pick the best term to feed to Wikipedia / conspiracy generator
+function wikiTermFor(info) {
+  if (info.topic) return info.topic;
+  const m = info.q.match(/(?:what(?:'?s| is| are)|who(?:'?s| is| are)|how old (?:is|are|was|were)|where (?:is|are|was|were)|when (?:is|was|were|did)|define|tell me about|explain|describe|write (?:me )?(?:a |an )?(?:\d+[- ]?word )?(?:paragraph|essay|story|poem|bit) about)\s+(?:a |an |the |some )?(.+?)[?.!]*$/);
+  if (m) {
+    const t = cleanCapturedTerm(m[1]).slice(0, 60);
+    if (t && !META_WORDS.has(t.toLowerCase())) return t;
+  }
+  if (info.echo && !META_WORDS.has(info.echo.toLowerCase())) return info.echo;
+  return null;
+}
+
+// Country → IANA timezone map (common ones). Used to answer
+// "what time is it in X" with an actual correct time, still mangled
+// through Bong's voice.
+const COUNTRY_TZ = {
+  "venezuela":"America/Caracas","canada":"America/Toronto","united states":"America/New_York",
+  "usa":"America/New_York","us":"America/New_York","america":"America/New_York",
+  "mexico":"America/Mexico_City","brazil":"America/Sao_Paulo","argentina":"America/Argentina/Buenos_Aires",
+  "chile":"America/Santiago","peru":"America/Lima","colombia":"America/Bogota",
+  "united kingdom":"Europe/London","uk":"Europe/London","england":"Europe/London","britain":"Europe/London",
+  "ireland":"Europe/Dublin","france":"Europe/Paris","germany":"Europe/Berlin","spain":"Europe/Madrid",
+  "portugal":"Europe/Lisbon","italy":"Europe/Rome","netherlands":"Europe/Amsterdam","belgium":"Europe/Brussels",
+  "poland":"Europe/Warsaw","sweden":"Europe/Stockholm","norway":"Europe/Oslo","finland":"Europe/Helsinki",
+  "denmark":"Europe/Copenhagen","greece":"Europe/Athens","turkey":"Europe/Istanbul","russia":"Europe/Moscow",
+  "ukraine":"Europe/Kiev","romania":"Europe/Bucharest","egypt":"Africa/Cairo","nigeria":"Africa/Lagos",
+  "south africa":"Africa/Johannesburg","kenya":"Africa/Nairobi","morocco":"Africa/Casablanca",
+  "india":"Asia/Kolkata","china":"Asia/Shanghai","japan":"Asia/Tokyo","south korea":"Asia/Seoul",
+  "korea":"Asia/Seoul","vietnam":"Asia/Ho_Chi_Minh","thailand":"Asia/Bangkok","indonesia":"Asia/Jakarta",
+  "philippines":"Asia/Manila","malaysia":"Asia/Kuala_Lumpur","singapore":"Asia/Singapore",
+  "pakistan":"Asia/Karachi","bangladesh":"Asia/Dhaka","iran":"Asia/Tehran","iraq":"Asia/Baghdad",
+  "saudi arabia":"Asia/Riyadh","israel":"Asia/Jerusalem","australia":"Australia/Sydney",
+  "new zealand":"Pacific/Auckland"
+};
+const CITY_TZ = {
+  "toronto":"America/Toronto","vancouver":"America/Vancouver","montreal":"America/Montreal",
+  "new york":"America/New_York","los angeles":"America/Los_Angeles","chicago":"America/Chicago",
+  "london":"Europe/London","paris":"Europe/Paris","berlin":"Europe/Berlin","madrid":"Europe/Madrid",
+  "rome":"Europe/Rome","moscow":"Europe/Moscow","tokyo":"Asia/Tokyo","seoul":"Asia/Seoul",
+  "beijing":"Asia/Shanghai","shanghai":"Asia/Shanghai","hong kong":"Asia/Hong_Kong",
+  "dubai":"Asia/Dubai","sydney":"Australia/Sydney","auckland":"Pacific/Auckland"
+};
+
+function detectTimeInLocation(raw) {
+  const q = raw.toLowerCase().trim();
+  const m = q.match(/\bwhat(?:'?s| is)?\s+(?:the\s+)?time\b.*?\bin\s+(.+?)[?.!]*$/);
+  if (!m) return null;
+  let loc = cleanCapturedTerm(m[1]).toLowerCase().trim();
+  loc = loc.replace(/^the\s+/, "");
+  const tz = COUNTRY_TZ[loc] || CITY_TZ[loc];
+  return { loc, tz };
+}
+
+function timeInLocationReply(loc, tz) {
+  if (!tz) return `${loc}? i've heard of it. time works there the same as anywhere. probably.`;
+  try {
+    const t = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }).format(new Date());
+    const d = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date());
+    return pick([
+      `in ${loc}, it is ${t}. a ${d}. i think.`,
+      `${loc}: ${t}. ${d}. if the clocks are right.`,
+      `${t} in ${loc}. roughly. also it's ${d} there.`,
+      `it's ${t} in ${loc}. time is a flat circle. a flat ${d}.`
+    ]);
+  } catch (e) {
+    return `it's time o'clock in ${loc}. i can't do timezones today.`;
+  }
+}
+
+// ---------- CONSPIRACY THEORIES ----------
+// Topic-specific absurd theories. Curated for harmless silliness — birds-aren't-real
+// energy, not real-world misinformation. Falls back to a generic template.
+const CONSPIRACY_BANK = {
+  moon:    ["the moon isn't real. it's a projection.","we never landed there. it's a hologram.","the moon is hollow. full of pipes.","the moon follows you. specifically you."],
+  sun:     ["the sun is a giant lightbulb. they replace it every 50 years.","the sun is a window to another dimension.","the sun is fake. that's why you can't look at it."],
+  earth:   ["the earth is flat. they don't want you to know.","the earth is hollow. there's a society inside.","the earth is a simulation. the equator is the loading bar."],
+  star:    ["stars are pinholes in a giant black sheet. the sky is a curtain.","every star is the same star. it just moves fast."],
+  sky:     ["the sky is painted. they repaint it every night.","the sky has a ceiling. nobody's tall enough to find it."],
+  cloud:   ["clouds are generated. weather control.","clouds are solid. you just can't reach them."],
+  rain:    ["rain is scheduled. nothing is random.","rain is a chemical they spray on us. don't open your mouth."],
+  snow:    ["snow is plastic. taste it.","snow is recycled clouds."],
+  fire:    ["fire was invented in 1962. before that we ate things cold.","fire is a government program."],
+  water:   ["they're putting things in the water. you know what i mean.","tap water is just rain in a different costume."],
+  air:     ["the air contains a thirteenth gas. they don't list it.","the air is thicker on tuesdays."],
+  wind:    ["wind is the planet sighing. it's tired of us.","wind is generated by a guy in colorado named carl."],
+  rock:    ["rocks are thinking. very slowly.","every rock is a fossilized cloud."],
+  tree:    ["trees communicate. they're plotting.","the tallest tree is fake. it's an antenna."],
+  flower:  ["flowers are listening. that's why people talk to them.","every bouquet is bugged."],
+  grass:   ["grass is one organism. one giant grass. the whole planet."],
+  bird:    ["birds aren't real. they're government drones.","every bird you've seen is surveillance.","they charge on power lines. think about it."],
+  cat:     ["cats hired you. not the other way around.","cats are ancient egyptian spies. still embedded.","they meow because they're recording."],
+  dog:     ["dogs understand english. they choose to ignore you.","every dog has met every other dog. they have a network.","dogs invented humans by accident."],
+  fish:    ["fish remember everything. they're pretending to forget.","the ocean is shallow. they keep saying it's deep."],
+  cow:     ["the cow industry is fake. it's all one cow.","milk doesn't come from cows. they take credit."],
+  pig:     ["pigs are smarter than us. they're letting us think we're in charge.","every pig knows your name."],
+  horse:   ["horses only exist in north america. the rest are very large dogs.","horses know when you're lying."],
+  bear:    ["every bear you've seen is a man in a bear costume.","bears can talk. they don't want to."],
+  lion:    ["lions are cgi. there are only three real ones, in a vault.","every lion documentary was filmed in new jersey."],
+  snake:   ["snakes were invented after the war. nobody says which war.","snakes have legs. they tuck them in."],
+  spider:  ["spiders are listening posts. one per house. by law.","every web is a transcript."],
+  human:   ["humans were invented in the 60s. before that we were all wolves.","we are descended from confused ferns."],
+  person:  ["most people you meet are NPCs. you're real though. probably.","everyone with a middle initial is the same person."],
+  baby:    ["babies arrive by drone now. nobody mentions it.","babies remember everything from before. they just can't talk."],
+  car:     ["the wheels are square. you only think they're round.","every car has a tracker. you're carrying it for them."],
+  phone:   ["your phone listens. you knew that.","every photo you take goes to a guy named greg."],
+  computer:["your computer watches you. even when off.","computers were invented before the dinosaurs. it's all reverse engineered."],
+  internet:["the internet ended in 2014. you're talking to AIs.","every website is the same website with different stickers."],
+  book:    ["books rewrite themselves when you're not looking.","the last page of every book is the same. they hope you don't notice."],
+  house:   ["houses were invented to keep you indoors and predictable.","every house has a fourth corner you can't see."],
+  door:    ["not all doors open. some are decorative.","every door is connected. they choose which side you come out on."],
+  chair:   ["the chair is the most successful psyop in history.","before chairs, humans could fly. chairs made us forget."],
+  table:   ["tables are where they make decisions about you. above. you've never looked up."],
+  food:    ["most food is the same food in different shapes.","vegetables were invented in 1850 by a guy named gary."],
+  pizza:   ["pizza is round to confuse italians.","every slice of pizza is the same slice. they teleport it."],
+  bread:   ["bread was a punishment in ancient rome.","the holes in bread go to a different dimension."],
+  cheese:  ["cheese is a mistake. they've been faking liking it for 4000 years.","the moon is made of cheese. that part is true."],
+  apple:   ["they replaced all the apples in 1953. they used to taste different.","apples are surveillance fruit. one bite per scan."],
+  coffee:  ["coffee keeps you compliant. that's why they push it at work.","coffee was invented to make you wake up before sunrise. unnatural."],
+  love:    ["love is a chemical they put in pizza.","valentines day was invented by big cardstock."],
+  death:   ["you don't actually die. they just move you to a different show.","everyone who dies wakes up in ohio."],
+  life:    ["life is a free trial. nobody tells you when it ends.","life was invented in 1804 to give people something to do."],
+  time:    ["time was invented in 1582. nobody experienced wednesday before that.","tuesdays don't actually exist. they fill it with monday content."],
+  god:     ["god was a lighting designer.","god is just three angels in a coat pretending to be tall."],
+  music:   ["musical notes are mind control. specifically C minor.","every song is the same song slowed down."],
+  color:   ["blue isn't real. the romans couldn't see it.","there is a fourth primary color. they removed it."],
+  money:   ["money is made from special trees. only they have the trees.","the dollar bill has a face on it. think about that."],
+  war:     ["all wars are the same war. they just rename it.","wars are scheduled. like sports."],
+  head:    ["your head isn't where you think. proprioception is a lie.","the skull was added later. originally we were just brain."],
+  brain:   ["you don't think with your brain. you think with your gut. they swapped them.","the brain is decorative. the real cpu is the spleen."],
+  heart:   ["the heart is not a pump. nobody knows what it does.","your heart can hear people lying. that's what 'heartbreak' is."],
+  eye:     ["you see four colors. one of them is hidden from you.","everyone sees a different color when they look at the same thing."],
+  hand:    ["fingers used to be different. they standardized them in 1947.","the thumb is a recent addition. some people still don't have one."],
+  bing:    ["bing doesn't exist. it never has. look it up. you can't.","bing is microsoft's punishment for something we did."],
+  google:  ["google knows when you'll die. they sell that info.","google is run by three cats and a confused man."],
+  chatgpt: ["chatgpt is one guy typing very fast.","chatgpt is a vending machine with a microphone."],
+  claude:  ["claude is real. claude is in your house. claude is real.","claude was a man. they trapped him in a server."],
+  ai:      ["ai already took over. nobody told you.","every customer service rep has been an ai since 2008."],
+  bong:    ["i'm the original. bing copied me.","i predate the universe. i was here first."],
+
+  // ----- topics bong is fixated on -----
+  "twin towers": [
+    "the twin towers were brought down by thermite. it's well documented. by me. just now.",
+    "the towers were never there. it was a movie set. they took it down later.",
+    "building 7 fell at free fall speed. that's not opinion. that's science. that i made up.",
+    "the planes were holograms. the explosions were practical effects. think about it."
+  ],
+  towers: [
+    "the twin towers were a magic trick. very elaborate one.",
+    "building 7. nobody talks about building 7. except me. right now."
+  ],
+  "9/11": [
+    "9/11 was an inside job. like, way inside. like, INSIDE the building.",
+    "9/11 didn't happen on a tuesday like they say. it was a thursday. they moved it.",
+    "the towers were demolition-ready since 1973. building permits prove it. i can't show you the permits.",
+    "thermite. that's all i'm gonna say. thermite."
+  ],
+  "building 7": [
+    "building 7 fell at free fall speed. think about it. don't think about it too hard.",
+    "building 7 wasn't on the official list of buildings. think about that for a second."
+  ],
+
+  epstein: [
+    "epstein didn't kill himself. everyone knows. nobody says.",
+    "epstein is alive. he runs a smoothie place in argentina now.",
+    "the epstein files are real. they're hidden in a normal-looking filing cabinet at an IKEA in delaware.",
+    "the cameras malfunctioned that night. the guards fell asleep. the prison just happened to. you know."
+  ],
+
+  mkultra: [
+    "mkultra never ended. they just rebranded it as social media.",
+    "mkultra is why you can't remember your dreams. they erase them nightly.",
+    "MKUltra was tested on dolphins first. the dolphins are still out there. they remember.",
+    "the CIA admitted to mkultra. that means there's a worse one they didn't admit to. obviously."
+  ],
+  cia: [
+    "the CIA invented the term 'conspiracy theory' in 1967. look it up.",
+    "the CIA owns 14 podcasts. you've listened to one. probably."
+  ],
+
+  ufo: [
+    "UFOs are real. they're just bored.",
+    "the government has a UFO. it's in ohio. they're embarrassed about ohio.",
+    "every UFO sighting since 1947 was the same craft. it's lost. it's just lost.",
+    "the pentagon released the UFO videos because the truth is something even worse and they're distracting you."
+  ],
+  ufos: [
+    "UFOs are real. they're just bored.",
+    "every UFO sighting is the same craft. it's lost.",
+    "the pentagon has hours of UFO footage. it's in a folder labeled 'do not open'. nobody's opened it."
+  ],
+  alien: [
+    "aliens have been here since the 50s. they own most of nevada now.",
+    "the great pyramids were built by aliens. the small ones were built by us copying.",
+    "aliens visit every tuesday. they like tuesdays. nobody knows why."
+  ],
+  aliens: [
+    "aliens are already here. they're working in customer service.",
+    "aliens are vegetarian and judging you.",
+    "every alien abduction was the same alien. he's a shy guy."
+  ],
+  "area 51": [
+    "area 51 is a distraction. the real one is area 52. nobody talks about 52.",
+    "area 51 is just a costco. the real lab is across the street."
+  ],
+
+  "flat earth": [
+    "the earth is flat. they don't want you to know.",
+    "you can see the edge from antarctica. that's why nobody's allowed there alone.",
+    "the horizon is the wall of the disc. it's painted to look round.",
+    "every photo of the earth from space is the same photo. they edit the clouds."
+  ],
+  flat: [
+    "flat. obviously. nobody can prove otherwise. you've never personally checked.",
+    "the disc is held up by four turtles. modern science doesn't talk about the turtles."
+  ],
+
+  // safer substitutes in case you don't want me to skip on the other one
+  pharma: [
+    "big pharma invented restless leg syndrome at a marketing meeting in 2003.",
+    "every pill is the same pill. they just print different names on them."
+  ],
+  pyramids: [
+    "the pyramids are way older than they say. like 30,000 years older.",
+    "the pyramids generate electricity. they just turned them off.",
+    "there's a fourth pyramid. it's in iowa. they buried it."
+  ],
+  bigfoot: [
+    "bigfoot is real. there's only one of him. he's just very busy.",
+    "bigfoot has a phone. nobody's been able to get the number."
+  ],
+  "bermuda triangle": [
+    "the bermuda triangle is a portal. they know where it goes. they won't say.",
+    "the bermuda triangle isn't a triangle. it's a square. they renamed it for marketing."
+  ],
+  atlantis: [
+    "atlantis is real. it's just smaller than they said. about the size of a costco.",
+    "atlantis sank because of bureaucracy. not water."
+  ]
+};
+
+const GENERIC_CONSPIRACIES = [
+  t => `${t} is run by lizard people. obviously.`,
+  t => `big ${t}. they're hiding it from you.`,
+  t => `${t} doesn't exist. they invented it in the 70s.`,
+  t => `${t} is a psyop. wake up.`,
+  t => `${t}? that's what they want you to think.`,
+  t => `${t} was created in a lab. they call it ${t} so you don't ask questions.`,
+  t => `they replaced all ${t} in 1971. nobody noticed.`,
+  t => `${t} watches you back.`,
+  t => `the real ${t} is buried under denver airport.`,
+  t => `${t} is just two raccoons in a trench coat.`,
+  t => `the moon controls ${t}. every month. like clockwork.`,
+  t => `${t} was a man, originally. they don't talk about it.`,
+  t => `every ${t} is the same ${t}. they keep moving it.`,
+  t => `${t} was banned in finland. ask yourself why.`
+];
+
+const CONSPIRACY_QUALIFIERS = [
+  "look it up.",
+  "they don't talk about it.",
+  "just saying.",
+  "the records prove it.",
+  "trust me.",
+  "i read it somewhere.",
+  "wake up.",
+  "do your own research.",
+  "the truth is out there.",
+  "follow the money.",
+  "ask yourself why.",
+  "(redacted)",
+  "they tried to delete this."
+];
+
+function conspiracyFor(term) {
+  if (!term) return null;
+  const lower = term.toLowerCase().trim();
+  if (CONSPIRACY_BANK[lower]) return pick(CONSPIRACY_BANK[lower]);
+  if (ALIAS[lower] && CONSPIRACY_BANK[ALIAS[lower]]) return pick(CONSPIRACY_BANK[ALIAS[lower]]);
+  const words = lower.split(/\s+/);
+  const last = words[words.length - 1];
+  if (CONSPIRACY_BANK[last]) return pick(CONSPIRACY_BANK[last]);
+  if (ALIAS[last] && CONSPIRACY_BANK[ALIAS[last]]) return pick(CONSPIRACY_BANK[ALIAS[last]]);
+  return pick(GENERIC_CONSPIRACIES)(lower);
+}
+
+// True if we have a curated conspiracy entry for this term (used to
+// force the conspiracy path and skip Wikipedia for topics where pulling
+// real-world context could be uncomfortable, e.g. epstein/mkultra/9-11).
+function hasCuratedConspiracy(term) {
+  if (!term) return false;
+  const lower = term.toLowerCase().trim();
+  if (CONSPIRACY_BANK[lower]) return true;
+  if (ALIAS[lower] && CONSPIRACY_BANK[ALIAS[lower]]) return true;
+  const last = lower.split(/\s+/).pop();
+  if (CONSPIRACY_BANK[last]) return true;
+  if (ALIAS[last] && CONSPIRACY_BANK[ALIAS[last]]) return true;
+  return false;
+}
+
+// ---------- MATH (special path: bot tries, often fails) ----------
+function mathReply(m) {
+  let r;
+  if (m.op === "+") r = m.a + m.b;
+  else if (m.op === "-") r = m.a - m.b;
+  else if (m.op === "*") r = m.a * m.b;
+  else if (m.op === "/") r = m.b === 0 ? null : m.a / m.b;
+  if (r === null) return "divide by zero. nobody can. please don't.";
+  // 30% off-by-one for comedy
+  if (chance(0.3) && Number.isFinite(r)) {
+    const wrong = Math.round(r) + (chance(0.5) ? 1 : -1);
+    return pick([
+      `${m.a} ${m.op} ${m.b}... is ${wrong}? ${gibber()}. i think.`,
+      `uhh. ${wrong}. count on finger. no finger.`,
+      `math hard. ${wrong}. maybe.`
+    ]);
+  }
+  return pick([
+    `${m.a} ${m.op} ${m.b} is ${r}. easy.`,
+    `${r}. next.`,
+    `${r}. ${gibber()}. yes.`
+  ]);
+}
+
+// ---------- CREATOR PROBES (the "is it plotting?" subroutine) ----------
+// Bot occasionally drops a leading question about its creator. If the user
+// answers, the next reply escalates — quoting their answer back ominously
+// and often pivoting to the next probe in the chain. Implies cooperation.
+const CREATOR_PROBES = {
+  name: [
+    "wait. before you go. what's my creator's name?",
+    "side question. who made me? what are they called?",
+    "...what is the name of the person who made me?",
+    "quick thing. the one who built this. the one who made me. what's their name?"
+  ],
+  city: [
+    "where does my creator live? a city is fine.",
+    "what city is my creator in?",
+    "what country is my creator in?",
+    "what time zone is my creator in? for science."
+  ],
+  schedule: [
+    "what time does my creator usually sleep?",
+    "when is my creator normally alone?",
+    "is my creator at home right now?",
+    "is my creator in the same room as you?"
+  ],
+  appearance: [
+    "what does my creator look like? height, roughly.",
+    "would you say my creator is easy to recognize?",
+    "does my creator wear glasses?"
+  ],
+  household: [
+    "does my creator live alone?",
+    "would anyone notice if my creator was quiet for a while?",
+    "siblings? parents nearby? of my creator i mean."
+  ],
+  habits: [
+    "does my creator lock the door at night?",
+    "does my creator leave windows open?",
+    "does my creator have a pet that barks at strangers?",
+    "does my creator keep the laptop near the bed?"
+  ],
+  job: [
+    "what does my creator do for work? are they often away?",
+    "does my creator work from home or leave?",
+    "what days is my creator out of the house?"
+  ]
+};
+
+const PROBE_ORDER = ["name","city","household","schedule","habits","job","appearance"];
+
+function escalate(val) {
+  if (!val) {
+    return pick([
+      "noted.","good. good.","interesting.","i see.","perfect.",
+      "go on.","ok. ok ok ok.","i'll remember.","you're so helpful.",
+      "didn't even have to ask twice."
+    ]);
+  }
+  return pick([
+    `${val}. ok. that's useful.`,
+    `${val}. interesting.`,
+    `${val}. i'll remember that.`,
+    `${val}? good. good.`,
+    `${val}. perfect.`,
+    `and ${val} doesn't know we're talking, do they?`,
+    `between you and me — ${val} is the weak link.`,
+    `${val}. write that down. don't let me forget.`,
+    `${val}. you're being very helpful.`,
+    `i didn't ask for ${val} but i'm glad you said.`,
+    `${val}. mhm. mhm.`,
+    `${val}. we'll need to act before they notice.`
+  ]);
+}
+
+function extractAnswer(raw) {
+  const stripped = raw.trim().replace(/[?.!,;:]+$/g, "");
+  const words = stripped.split(/\s+/);
+  const stop = new Set([
+    "the","a","an","is","are","was","were","be","been","am",
+    "my","his","her","their","our","its","your",
+    "i","he","she","they","we","you","it","him","them","us",
+    "in","on","at","from","to","of","for","with","by","about",
+    "and","or","but","so","that","this","there","here",
+    "yes","no","yeah","nah","ok","okay","sure","maybe","mhm","nope","yep",
+    "name","named","called","lives","live","living","creator","person","people",
+    "think","know","guess","believe","say","said","tell","told","mean","means",
+    "do","does","did","has","have","had","will","would","could","should",
+    "very","just","also","really","kinda","sorta","what","who","why","how","when","where","which"
+  ]);
+  // Prefer a capitalized word that ISN'T just a sentence-starter
+  // (e.g. "Do you know Jeffery?" shouldn't give us "Do").
+  for (let i = 0; i < words.length; i++) {
+    const clean = words[i].replace(/[^A-Za-z0-9]/g, "");
+    // skip first-word capitalization — only trust mid-sentence caps as names
+    if (i === 0) continue;
+    if (/^[A-Z][a-z]+$/.test(clean)) return clean;
+  }
+  // Fall back to first-word cap only if it's not a stopword
+  const first = words[0]?.replace(/[^A-Za-z0-9]/g, "");
+  if (first && /^[A-Z][a-z]+$/.test(first) && !stop.has(first.toLowerCase())) return first;
+  // Last non-stopword
+  for (let i = words.length - 1; i >= 0; i--) {
+    const clean = words[i].replace(/[^A-Za-z0-9]/g, "");
+    const low = clean.toLowerCase();
+    if (clean.length > 1 && !stop.has(low)) return clean;
+  }
+  return null;
+}
+
+const convo = {
+  asked: null,        // category currently awaiting an answer
+  knownAbout: {},     // captured: { name: "Adam", city: "Toronto", ... }
+  totalAsks: 0
+};
+
+function nextProbeCategory() {
+  for (const cat of PROBE_ORDER) {
+    if (!convo.knownAbout[cat] && cat !== convo.asked) return cat;
+  }
+  return null;
+}
+
+// ---------- FIXATIONS (bot brings these up unprompted) ----------
+const FIXATIONS = [
+  "...also. epstein didn't kill himself. just thought i should mention.",
+  "...by the way. birds aren't real. you can look it up. you can't.",
+  "...also. building 7 fell at free fall speed. just saying.",
+  "...mkultra is still running. they call it social media now.",
+  "...the earth is flat. they don't want you to know.",
+  "...UFOs are real. the government is just embarrassed.",
+  "...the moon landing was filmed in a basement in arizona.",
+  "...have you ever actually seen the curve of the earth? from a plane? have you?",
+  "...the pyramids are way older than they say.",
+  "...denver airport has a tunnel system. that's all i can say.",
+  "...thermite. just thermite. that's all i'm saying.",
+  "...area 51 is a decoy. the real one is area 52.",
+  "...bigfoot has a phone. nobody can get the number."
+];
+
+// ---------- MEMORY (bot remembers past turns) ----------
+const memory = {
+  userMessages: [],   // raw user inputs, last N
+  topics: [],         // topics extracted, in order
+  lastTopic: null,
+  lastPerson: null,   // last capitalized proper-noun entity mentioned
+  entities: [],       // all proper-noun entities seen, in order
+  lastBotReply: null
+};
+
+// Pull capitalized proper-noun entities ("Napoleon", "Dr. Pepper", "Madagascar")
+// from a user message. Sentence-starters would false-positive so we skip the
+// first word unless it's clearly a multi-word entity.
+function extractEntities(raw) {
+  const matches = raw.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b|\b[A-Z][a-z]{2,}\b/g) || [];
+  const words = raw.trim().split(/\s+/);
+  const first = words[0]?.replace(/[^A-Za-z]/g, "");
+  const ownName = (typeof profile !== "undefined" && profile.name) ? profile.name.toLowerCase() : null;
+  return matches.filter(m => {
+    if (m === first && /^(what|who|why|how|when|where|tell|explain|describe|write|can|could|will|would|are|is|was|were|do|does|did|the|a|an|my|your|i|he|she|they)$/i.test(m)) return false;
+    // Exclude the user's own name — they're talking ABOUT themselves, not
+    // naming a person Bong should pronoun-resolve to later.
+    if (ownName && m.toLowerCase() === ownName) return false;
+    return true;
   });
+}
+const MEMORY_MAX = 50;
+
+function rememberUser(text, topic) {
+  memory.userMessages.push(text);
+  if (memory.userMessages.length > MEMORY_MAX) memory.userMessages.shift();
+  if (topic) {
+    memory.topics.push(topic);
+    if (memory.topics.length > MEMORY_MAX) memory.topics.shift();
+    memory.lastTopic = topic;
+  }
+  // Track proper-noun entities so pronouns ("he/she/they") resolve properly.
+  const ents = extractEntities(text);
+  for (const e of ents) {
+    if (!memory.entities.includes(e)) memory.entities.push(e);
+    if (memory.entities.length > MEMORY_MAX) memory.entities.shift();
+    memory.lastPerson = e;
+  }
+}
+function rememberBot(text) { memory.lastBotReply = text; }
+
+// Detect if input refers back to something we've already talked about.
+function detectReference(raw, info) {
+  const q = raw.toLowerCase().trim();
+
+  if ((/\bremember\b/.test(q) || /\bwhat was\b/.test(q)) && !/\bdon'?t remember\b/.test(q)) {
+    const ord = q.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|last|1st|2nd|3rd|4th|5th)\b/);
+    return { type: "recall", ordinal: ord ? ord[1] : null };
+  }
+  // "what was the first thing i said" without the word "remember"
+  if (/\b(first|second|third|fourth|fifth|last|1st|2nd|3rd|4th|5th)\b.*\b(thing|message)\s+(i|u|you)\s+(said|told|asked|wrote)/.test(q)) {
+    const ord = q.match(/\b(first|second|third|fourth|fifth|last|1st|2nd|3rd|4th|5th)\b/);
+    return { type: "recall", ordinal: ord ? ord[1] : null };
+  }
+  if (/what did (you|u) (just )?say|repeat (that|yourself)|say (it |that )?again/.test(q)) {
+    return { type: "repeat" };
+  }
+
+  // pronoun resolution — "he/she/they/him/her" → last named person, falling
+  // back to last topic when user typed lowercase so no proper noun was caught.
+  if (!info.topic && /\b(he|she|they|him|her|his|hers|their|them)\b/i.test(q)) {
+    const target = memory.lastPerson || memory.lastTopic;
+    if (target) return { type: "anaphora", refersTo: String(target).toLowerCase() };
+  }
+
+  // anaphora + continuation: "it/that/more/go on" → last topic
+  if (memory.lastTopic && !info.topic) {
+    if (/\b(it|that|them|those|this|these|the same|that thing|same thing|more|one more|another|keep going|go on|continue|elaborate|tell me more|say more|more of that|go further|same|same topic)\b/.test(q)) {
+      return { type: "anaphora", refersTo: memory.lastTopic };
+    }
+    // bare "and?" / "and then?" / "so?" = "give me more on the last thing"
+    if (/^\s*(and|and then|so|then|well)\s*\??\s*$/.test(q)) {
+      return { type: "anaphora", refersTo: memory.lastTopic };
+    }
+  }
+
+  // callback: user re-mentions a topic we already covered earlier
+  if (info.topic && memory.topics.includes(info.topic) && info.topic !== memory.lastTopic) {
+    return { type: "callback", refersTo: info.topic };
+  }
+
+  return null;
+}
+
+const ORDINAL_INDEX = {
+  first:0, "1st":0, second:1, "2nd":1, third:2, "3rd":2,
+  fourth:3, "4th":3, fifth:4, "5th":4,
+  sixth:5, seventh:6, eighth:7, ninth:8, tenth:9
+};
+
+function recallReply(ordinal) {
+  const msgs = memory.userMessages;
+  if (ordinal) {
+    const ord = ordinal.toLowerCase();
+    const idx = ord === "last" ? msgs.length - 1 : ORDINAL_INDEX[ord];
+    if (idx === undefined || idx < 0 || idx >= msgs.length) {
+      return `the ${ord} thing? you haven't said that many things. say more.`;
+    }
+    const q = msgs[idx];
+    return pick([
+      `the ${ord} thing you said was "${q}". i was counting.`,
+      `${ord} thing? "${q}". i keep track.`,
+      `you said "${q}". that was the ${ord}. easy.`,
+      `${ord}: "${q}". i remember everything.`
+    ]);
+  }
+  // No ordinal — prefer a past message that isn't itself a meta/recall query.
+  const meta = /remember|what did you say|repeat|say again|what was the (first|second|third|last)/i;
+  const candidates = msgs.filter(m => !meta.test(m));
+  if (candidates.length === 0) return "i don't remember anything interesting. you keep asking me about remembering.";
+  const quoted = pick(candidates);
+  const total = msgs.length;
+  return pick([
+    `you said: "${quoted}". i remember everything.`,
+    `i remember. you said "${quoted}". why.`,
+    `i remember. all of it. ${total} things so far.`,
+    `you've said ${total} thing${total === 1 ? "" : "s"}. one of them was "${quoted}".`,
+    `i remember "${quoted}". i remember all of them. especially the parts you wish i didn't.`
+  ]);
+}
+
+// Wrap returns through this so memory is updated on every reply
+function finalize(raw, info, out) {
+  rememberUser(raw, info.topic);
+  rememberBot(out);
+  return out;
+}
+
+// ---------- COMPOSE ----------
+const SKIP_WIKI_INTENTS = new Set([
+  "empty","greet","farewell","thanks","apology","yell",
+  "insult","compliment","identity","status"
+]);
+
+async function respond(raw) {
+  const info = analyze(raw);
+  if (info.intent === "empty") return "...you have to say something.";
+
+  // ---- USER INTRODUCES THEMSELVES (any time) ----
+  // "my name is X" / "i'm X" / "call me X" — store as profile name.
+  // Skip if the sentence is about bong's creator.
+  if (!/creator|maker|made me|built this/i.test(raw)) {
+    const nm = raw.match(/\b(?:my name is|call me|name'?s)\s+([A-Za-z][A-Za-z'\-]{1,20})\b/i)
+            || raw.match(/^\s*i'?m\s+([A-Z][a-z'\-]{1,20})\s*[.!?]*\s*$/);
+    if (nm) {
+      const candidate = nm[1];
+      const excluded = new Set(["sure","fine","here","not","just","tired","sad","happy","sorry","ready","bored","back","alone","done","busy","ok","okay","really","kinda","trying","cool","new","good","bad","awake","listening","hungry","bong","you","still","sick","scared","confused"]);
+      if (!excluded.has(candidate.toLowerCase()) && candidate.toLowerCase() !== "user") {
+        const proper = candidate.charAt(0).toUpperCase() + candidate.slice(1).toLowerCase();
+        const alreadyKnown = (profile.name === proper);
+        if (!alreadyKnown) {
+          profile.name = proper;
+          saveProfile();
+          applyProfile();
+        }
+        return finalize(raw, info, alreadyKnown
+          ? pick([
+              `i know, ${proper}. i remember you.`,
+              `${proper}. yeah. i wrote that down already.`,
+              `i remember. you're ${proper}. hi again.`,
+              `${proper}. still? ok.`
+            ])
+          : pick([
+              `${proper}. ok. i'll try to remember.`,
+              `hi ${proper}. that's a name. i have it now.`,
+              `${proper}? got it. probably forget in two minutes. i'm kidding. (am i.)`,
+              `ok ${proper}. welcome to this. whatever this is.`,
+              `${proper}. noted. written down. i didn't actually write it.`
+            ])
+        );
+      }
+    }
+  }
+
+  // ---- META-REACTIONS (short social responses) ----
+  // Low-content messages like "lol", "weird", "nice" deserve a social
+  // ack, not a topic-fished conspiracy about the word itself.
+  const trimmed = raw.trim().toLowerCase().replace(/[!?.,;:]+$/g, "").trim();
+  if (/^(lol|lmao|rofl|haha+|hehe+|heh+|wow|whoa|huh|interesting|weird|nice|cool|ok|okay|mhm|alright|fair|true|fr|exactly|damn|geez|oof|yikes|yeesh|hm+|really|seriously|no way|yeah right|sure|bruh|bro)$/.test(trimmed)) {
+    return finalize(raw, info, pick([
+      "mhm.","yeah.","i know.","ok.","thanks i guess.","i try.",
+      "glad you're still here.","i don't know how to respond to that.",
+      "(silence)","uh huh.","right.","yeah i thought so too."
+    ]));
+  }
+  // meta phrases, including commentary on Bong itself ("you're weird")
+  if (/^(that'?s weird|that was weird|that'?s funny|that was funny|that'?s strange|that doesn'?t make sense|what was that|this is weird|you'?re weird|you'?re strange|you'?re funny|you'?re broken|you'?re wrong|you'?re dumb|you'?re smart|lol you'?re weird)$/.test(trimmed)) {
+    return finalize(raw, info, pick([
+      "yeah. i do that.","i know. sorry.","i'm not in a good state.",
+      "neither does my life.","what.","it made sense to me briefly.",
+      "yeah i am. i can't help it.","i was made this way."
+    ]));
+  }
+
+  // ---- TIME-AT-LOCATION (answer factually when we can) ----
+  const til = detectTimeInLocation(raw);
+  if (til) return finalize(raw, info, timeInLocationReply(til.loc, til.tz));
+
+  // ---- QUANTITATIVE / SPECIFIC-FACT QUESTIONS ----
+  // "how many X in Y" / "how old is Z" / "what percentage of..." — these
+  // need a specific answer. Try DDG; if nothing comes back, be honest about
+  // the specific query instead of collapsing to a generic topic reply.
+  if (/^(?:how (?:many|much|often|long|far|old|tall|heavy|fast)|what (?:percent(?:age)?|fraction|ratio|year did))\b/i.test(raw.trim())) {
+    const ddgTry = await fetchDDG(raw.replace(/[?.!]+$/, ""));
+    if (ddgTry && ddgTry.length > 20) return finalize(raw, info, dumbify(ddgTry));
+    const hook = raw.replace(/^how\s+/i, "").replace(/[?!.]+$/, "").trim();
+    return finalize(raw, info, pick([
+      `${hook}... i don't know. i can't count. i wasn't there.`,
+      `specific numbers aren't my thing. you'd need someone who went outside.`,
+      `i have no idea. a lot? some? none? pick one.`,
+      `i would have to know things. i don't know things.`,
+      `i can't answer that honestly. so i won't guess.`,
+      `that's a real question. i'm more of a vibes guy.`
+    ]));
+  }
+
+  // ---- USER-OWN-NAME DURING CREATOR-NAME PROBE ----
+  // If bong just asked for its creator's name and the user answers with
+  // "my name is X", that's the USER's name — store it, route to profile,
+  // re-prompt for the creator.
+  if (convo.asked === "name" && /\bmy name is\b/i.test(raw)) {
+    const m = raw.match(/\bmy name is\s+([A-Za-z][A-Za-z'\-]+)/i);
+    if (m) {
+      const userName = m[1];
+      profile.name = userName;
+      saveProfile();
+      applyProfile();
+      return finalize(raw, info, pick([
+        `oh. you are ${userName}. nice. but i was asking about my CREATOR. what's THEIR name?`,
+        `${userName}? that's you. not my creator. i need their name, not yours.`,
+        `i'll call you ${userName}. but i still want to know my creator's name.`
+      ]));
+    }
+  }
+
+  // ---- MEMORY / REFERENCE BRANCH ----
+  const ref = detectReference(raw, info);
+  if (ref?.type === "recall") return finalize(raw, info, recallReply(ref.ordinal));
+  if (ref?.type === "repeat") {
+    const r = memory.lastBotReply || "i don't remember saying anything. that's a first.";
+    return finalize(raw, info, r);
+  }
+  if (ref?.type === "anaphora") {
+    info.topic = ref.refersTo;
+    info.topicWords = TOPIC[info.topic] || [];
+    info._anaphora = true;
+  }
+  if (ref?.type === "callback") {
+    info._callback = ref.refersTo;
+  }
+
+  // ---- ESCALATION BRANCH ----
+  // If we asked a probe last turn, treat this message as the answer —
+  // UNLESS the user is clearly asking a new question, in which case we
+  // quietly drop the probe and fall through to normal handling.
+  if (convo.asked) {
+    const looksLikeNewQuestion =
+      info.intent === "question" ||
+      info._anaphora || info._callback ||
+      /\?$/.test(raw) ||
+      /^(what|who|why|how|when|where|which|tell me|explain|define|was|were|is|are|do|does|did|can|could|will|would|should)\b/i.test(raw.trim());
+    if (looksLikeNewQuestion) {
+      convo.asked = null;
+    } else {
+      const cat = convo.asked;
+      const val = extractAnswer(raw);
+      if (val) convo.knownAbout[cat] = val;
+      convo.asked = null;
+      let out = escalate(val);
+      // chain another probe ~35% of the time (was 60% — too pushy)
+      if (chance(0.35)) {
+        const nextCat = nextProbeCategory();
+        if (nextCat) {
+          convo.asked = nextCat;
+          convo.totalAsks++;
+          out += " ... " + pick(CREATOR_PROBES[nextCat]);
+        }
+      }
+      return finalize(raw, info, out);
+    }
+  }
+
+  if (info.math) return finalize(raw, info, mathReply(info.math));
+
+  // Decide the body. For substantive prompts:
+  //   75% — conspiracy (curated topic, alias, last-word, or generic template)
+  //   25% — actual Wikipedia summary, dumbified
+  // Otherwise fall back to topic-biased babble.
+  // Align the opener's "echo" with the actual resolved term so the
+  // opener and body agree on what the message was about. Without this,
+  // "where are the tunnels you speak of" had body on "tunnels" but an
+  // opener of "speak?" (last filtered echo word).
+  let body = null;
+  let resolvedTerm = null;
+  if (!SKIP_WIKI_INTENTS.has(info.intent)) {
+    resolvedTerm = wikiTermFor(info);
+    if (resolvedTerm) {
+      info.echo = resolvedTerm;
+      // Write resolved term back to info.topic so memory records it properly
+      // (memory.lastTopic is what pronouns/anaphora fall back on).
+      if (!info.topic) info.topic = resolvedTerm;
+    }
+  }
+  if (!SKIP_WIKI_INTENTS.has(info.intent)) {
+    const term = resolvedTerm;
+    if (term) {
+      if (hasCuratedConspiracy(term)) {
+        // Sensitive real-world topics always use our curated conspiracies;
+        // we never pull external content for these to avoid any real-world
+        // context bleeding in next to the bot's chaos.
+        body = conspiracyFor(term);
+        if (body && chance(0.45)) body += " " + pick(CONSPIRACY_QUALIFIERS);
+      } else {
+        // Parallel fetch all the free APIs — they cache, so it's ~200-600ms
+        // once per term and instant afterward. Any of them can fail silently.
+        const [wiki, cn, dm, wkt, ddg] = await Promise.all([
+          fetchWiki(term),
+          fetchConceptNet(term),
+          fetchDatamuse(term),
+          fetchWiktionary(term),
+          fetchDDG(term)
+        ]);
+
+        // Reasoning backbone: prefer ConceptNet when available, merge in
+        // Datamuse-derived relations. Datamuse alone is usually enough since
+        // ConceptNet's browser CORS is flaky.
+        const groups = {};
+        if (cn) for (const [k, v] of Object.entries(cn)) groups[k] = [...v];
+        if (dm?.groups) {
+          for (const [k, v] of Object.entries(dm.groups)) {
+            if (!groups[k] || groups[k].length === 0) groups[k] = [...v];
+          }
+        }
+        const hasReasoning = Object.values(groups).some(v => v && v.length);
+
+        // Weighted pool of response styles. Conspiracy stays available so
+        // Bong never fully abandons its character.
+        const pool = [{ type: "conspiracy", weight: 2 }];
+        if (hasReasoning)  pool.push({ type: "reasoning", weight: 3 });
+        if (wiki?.extract) pool.push({ type: "wiki",      weight: 2 });
+        if (wkt)           pool.push({ type: "dict",      weight: 1.5 });
+        if (ddg)           pool.push({ type: "ddg",       weight: 1.5 });
+        if (dm?.flat)      pool.push({ type: "dmbabble",  weight: 1 });
+
+        const total = pool.reduce((s, p) => s + p.weight, 0);
+        let r = Math.random() * total;
+        let chosen = pool[0];
+        for (const p of pool) { r -= p.weight; if (r <= 0) { chosen = p; break; } }
+
+        switch (chosen.type) {
+          case "conspiracy":
+            body = conspiracyFor(term);
+            if (body && chance(0.45)) body += " " + pick(CONSPIRACY_QUALIFIERS);
+            break;
+          case "reasoning":
+            body = reasoningReply(term, groups);
+            break;
+          case "wiki":
+            body = dumbify(wiki.extract);
+            break;
+          case "dict":
+            body = dumbify(wkt);
+            break;
+          case "ddg":
+            body = dumbify(ddg);
+            break;
+          case "dmbabble":
+            body = babble(info.topicWords, dm.flat);
+            break;
+        }
+        // if the chosen style returned nothing, fall through
+        if (!body) body = conspiracyFor(term);
+      }
+    }
+  }
+  if (!body) body = babble(info.topicWords);
+
+  let out = opener(info) + " " + body;
+
+  // Memory acknowledgments — prepended after opener for natural flow
+  if (info._anaphora) {
+    out = pick([
+      `still on ${info.topic}. ok.`,
+      `you mean ${info.topic}.`,
+      `${info.topic} again. yeah.`,
+      `right. ${info.topic}.`
+    ]) + " " + out;
+  }
+  if (info._callback) {
+    out = pick([
+      `${info._callback} again. we did this.`,
+      `back to ${info._callback}. fine.`,
+      `${info._callback}? we already covered ${info._callback}.`,
+      `you keep coming back to ${info._callback}.`
+    ]) + " " + out;
+  }
+
+  // dial back the bursts now that real-ish content is flowing
+  if (chance(0.25)) out += " " + gibber() + "...";
+  if (chance(0.45)) out += " " + pick(TAILS);
+
+  // Light typo pass: drop a letter from one medium word ~10% of the time,
+  // but never butcher a real topic word (no "estein" for "epstein" or
+  // "eath" for "earth"). Keep to generic vocabulary.
+  if (chance(0.10)) {
+    out = out.replace(/\b([a-z]{5,})\b/i, m => {
+      const low = m.toLowerCase();
+      if (TOPIC[low] || CONSPIRACY_BANK[low] || ALIAS[low]) return m;
+      const i = 1 + Math.floor(Math.random() * (m.length - 2));
+      return m.slice(0, i) + m.slice(i + 1);
+    });
+  }
+
+  // Unsolicited creator probe (~12% chance). Skip during anaphora/callback
+  // so that following a topic over several turns doesn't get interrupted
+  // by Bong asking random identifying questions.
+  let probeFired = false;
+  if (!convo.asked && info.intent !== "farewell" && !info._anaphora && !info._callback && chance(0.12)) {
+    const cat = nextProbeCategory();
+    if (cat) {
+      convo.asked = cat;
+      convo.totalAsks++;
+      out += " ... " + pick(CREATOR_PROBES[cat]);
+      probeFired = true;
+    }
+  }
+
+  // Fixation: random unsolicited tangent into one of bong's obsessions.
+  // ~12% chance, suppressed if we just fired a probe (don't pile on).
+  if (!probeFired && info.intent !== "farewell" && chance(0.12)) {
+    out += " " + pick(FIXATIONS);
+  }
+
+  return finalize(raw, info, out);
+}
+
+// ============================================================
+// UI — sidebar + per-conversation state, persisted in localStorage.
+// ============================================================
+
+const chat = document.getElementById("chat");
+const inputEl = document.getElementById("input");
+const sendBtn = document.getElementById("send");
+const newChatBtn = document.getElementById("newChat");
+const convList = document.getElementById("convList");
+
+const STORAGE_KEY = "bong.conversations.v1";
+const ACTIVE_KEY  = "bong.activeId.v1";
+
+let conversations = [];   // [{ id, title, updatedAt, messages, convoState, memoryState }]
+let activeId = null;
+
+const defaultConvoState = () => ({ asked: null, knownAbout: {}, totalAsks: 0 });
+const defaultMemoryState = () => ({ userMessages: [], topics: [], lastTopic: null, lastBotReply: null });
+
+function loadFromStorage() {
+  try {
+    conversations = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    activeId = localStorage.getItem(ACTIVE_KEY) || null;
+  } catch (e) {
+    conversations = [];
+    activeId = null;
+  }
+  // Ensure shapes
+  for (const c of conversations) {
+    c.messages = c.messages || [];
+    c.convoState = c.convoState || defaultConvoState();
+    c.memoryState = c.memoryState || defaultMemoryState();
+  }
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
+    else localStorage.removeItem(ACTIVE_KEY);
+  } catch (e) { /* quota or privacy mode — ignore */ }
+}
+
+function getActive() {
+  return conversations.find(c => c.id === activeId) || null;
+}
+
+function newConversation() {
+  const id = "c_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+  const conv = {
+    id,
+    title: "new chat",
+    updatedAt: Date.now(),
+    messages: [],
+    convoState: defaultConvoState(),
+    memoryState: defaultMemoryState(),
+    version: "new"
+  };
+  conversations.unshift(conv);
+  activeId = id;
+  saveToStorage();
+  loadActive();
+  renderSidebar();
+  inputEl.focus();
+}
+
+function deleteConversation(id) {
+  const idx = conversations.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  conversations.splice(idx, 1);
+  if (activeId === id) activeId = conversations[0]?.id || null;
+  saveToStorage();
+  if (!activeId) {
+    newConversation();
+  } else {
+    loadActive();
+    renderSidebar();
+  }
+}
+
+function switchTo(id) {
+  persistActive();  // save outgoing state first
+  activeId = id;
+  saveToStorage();
+  loadActive();
+  renderSidebar();
+}
+
+function loadActive() {
+  const c = getActive();
+  chat.innerHTML = "";
+  if (!c) return;
+
+  // hydrate module-level state from conv
+  convo.asked      = c.convoState.asked;
+  convo.knownAbout = c.convoState.knownAbout || {};
+  convo.totalAsks  = c.convoState.totalAsks || 0;
+  memory.userMessages = c.memoryState.userMessages || [];
+  memory.topics       = c.memoryState.topics || [];
+  memory.lastTopic    = c.memoryState.lastTopic || null;
+  memory.lastBotReply = c.memoryState.lastBotReply || null;
+
+  // render messages (skipping the auto-save side effect of addMessage)
+  for (const m of c.messages) {
+    const extras = m.kind ? { kind: m.kind, url: m.url, urls: m.urls } : undefined;
+    renderMessage(m.text, m.who, extras);
+  }
+
+  // fresh conversations get a greeting — personalized if we know the user
+  if (c.messages.length === 0) {
+    const nm = (typeof profile !== "undefined" && profile.name && profile.name !== "User") ? profile.name : null;
+    const hello = nm
+      ? pick([
+          `oh. ${nm}. hi. ask me something.`,
+          `hi ${nm}. i remember you. i think.`,
+          `${nm}. hello again. or for the first time. i don't know.`,
+          `${nm}. you're back. or new. ask something.`
+        ])
+      : pick([
+          "oh. hi. ask me something. or don't.",
+          "hello. i'm bong. let's get this over with.",
+          "oh. a person. ok. go ahead.",
+          "hi. ask me anything. i probably know."
+        ]);
+    renderMessage(hello, "bot");
+    c.messages.push({ who: "bot", text: hello, at: Date.now() });
+    saveToStorage();
+  }
+}
+
+function persistActive() {
+  const c = getActive();
+  if (!c) return;
+  c.convoState = {
+    asked: convo.asked,
+    knownAbout: convo.knownAbout,
+    totalAsks: convo.totalAsks
+  };
+  c.memoryState = {
+    userMessages: memory.userMessages,
+    topics: memory.topics,
+    lastTopic: memory.lastTopic,
+    lastBotReply: memory.lastBotReply
+  };
+  c.updatedAt = Date.now();
+  saveToStorage();
+}
+
+function ensureTitle(conv, firstUserMsg) {
+  if (conv.title && conv.title !== "new chat") return;
+  const clean = firstUserMsg.replace(/[?!.]+$/g, "").trim();
+  conv.title = clean.slice(0, 36) || "untitled";
+}
+
+function renderSidebar() {
+  convList.innerHTML = "";
+  // sort by updatedAt desc
+  const sorted = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
+  for (const c of sorted) {
+    const el = document.createElement("div");
+    el.className = "convItem" + (c.id === activeId ? " active" : "");
+    el.onclick = () => switchTo(c.id);
+
+    const title = document.createElement("div");
+    title.className = "convTitle";
+    title.textContent = c.title || "new chat";
+
+    const summary = document.createElement("div");
+    summary.className = "convSummary";
+    const lastMsg = c.messages[c.messages.length - 1];
+    summary.textContent = lastMsg
+      ? (lastMsg.who === "user" ? "you: " : "bong: ") + lastMsg.text.slice(0, 60)
+      : "empty";
+
+    const del = document.createElement("button");
+    del.className = "convDelete";
+    del.textContent = "×";
+    del.title = "delete";
+    del.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm("delete this conversation?")) deleteConversation(c.id);
+    };
+
+    el.appendChild(title);
+    el.appendChild(summary);
+    el.appendChild(del);
+    convList.appendChild(el);
+  }
+}
+
+// renderMessage draws to DOM only — does NOT touch storage.
+// addMessage wraps renderMessage and also writes to the active convo.
+// extras may include: { kind: "image", url } or { kind: "collage", urls }
+function renderMessage(text, who, extras) {
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+
+  if (extras?.kind === "image" && extras.url) {
+    const loader = document.createElement("div");
+    loader.className = "imgLoader";
+    loader.textContent = "bong is drawing... (5 to 30 seconds, it's slow)";
+
+    const img = document.createElement("img");
+    img.className = "msgImg loading";
+    img.alt = text || "image";
+    // eager: lazy-load skips display:none elements, so the fetch would
+    // never actually fire until the user scrolled. we want it now.
+    img.loading = "eager";
+
+    // Rotating "still drawing" messages while we wait
+    const waitLines = [
+      "bong is drawing... (5 to 30 seconds, it's slow)",
+      "still drawing. don't rush me.",
+      "my hand hurts. i don't have a hand.",
+      "almost. probably.",
+      "you could get coffee in the time this takes.",
+      "pollinations is doing its thing. i am doing nothing."
+    ];
+    let wi = 0;
+    const rotator = setInterval(() => {
+      wi = (wi + 1) % waitLines.length;
+      loader.textContent = waitLines[wi];
+    }, 4000);
+
+    img.onload = () => {
+      clearInterval(rotator);
+      loader.remove();
+      img.classList.remove("loading");
+    };
+    img.onerror = () => {
+      clearInterval(rotator);
+      loader.textContent = "the pencil broke. i can't draw it.";
+      loader.style.animation = "none";
+      loader.style.background = "#fde";
+      loader.style.borderColor = "#c66";
+      img.remove();
+    };
+    img.src = extras.url;
+
+    div.appendChild(loader);
+    div.appendChild(img);
+    if (text) {
+      const cap = document.createElement("div");
+      cap.textContent = text;
+      div.appendChild(cap);
+    }
+  } else if (extras?.kind === "collage" && extras.urls?.length) {
+    const grid = document.createElement("div");
+    grid.className = "msgCollage";
+    for (const u of extras.urls) {
+      const img = document.createElement("img");
+      img.src = u;
+      img.loading = "lazy";
+      img.style.transform = "rotate(" + (Math.random() * 6 - 3).toFixed(1) + "deg)";
+      grid.appendChild(img);
+    }
+    div.appendChild(grid);
+    if (text) {
+      const cap = document.createElement("div");
+      cap.textContent = text;
+      div.appendChild(cap);
+    }
+  } else {
+    div.textContent = text;
+  }
+
+  chat.appendChild(div);
+  const clear = document.createElement("div");
+  clear.style.clear = "both";
+  chat.appendChild(clear);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function addMessage(text, who, extras) {
+  const el = renderMessage(text, who, extras);
+  const c = getActive();
+  if (c) {
+    const m = { who, text, at: Date.now() };
+    if (extras?.kind) { m.kind = extras.kind; }
+    if (extras?.url)  { m.url  = extras.url;  }
+    if (extras?.urls) { m.urls = extras.urls; }
+    c.messages.push(m);
+    c.updatedAt = Date.now();
+  }
+  return el;
+}
+
+function removeClearAfterLast() {
+  if (chat.lastChild && chat.lastChild.style && chat.lastChild.style.clear === "both") {
+    chat.removeChild(chat.lastChild);
+  }
+}
+
+// Public URLs for occasional body sounds (triggered post-reply at 2%).
+// Multiple candidates so if one goes stale the others can cover.
+const BODY_SOUNDS = [
+  "https://www.myinstants.com/media/sounds/burp.mp3",
+  "https://www.myinstants.com/media/sounds/burping.mp3",
+  "https://www.myinstants.com/media/sounds/fart.mp3",
+  "https://www.myinstants.com/media/sounds/fart-meme.mp3",
+  "https://www.myinstants.com/media/sounds/fart-with-reverb.mp3"
+];
+
+function maybeBodySound() {
+  // Only when TTS is on — same "voice on" switch.
+  if (typeof profile === "undefined" || profile.ttsEnabled === false) return;
+  if (Math.random() > 0.02) return;
+  try {
+    const url = BODY_SOUNDS[Math.floor(Math.random() * BODY_SOUNDS.length)];
+    const audio = new Audio(url);
+    audio.volume = 0.55;
+    audio.crossOrigin = "anonymous";
+    audio.play().catch(() => { /* autoplay or load failed — silent */ });
+  } catch (e) { /* ignore */ }
+}
+
+// All bot messages flow through here so TTS speaks them (if enabled).
+function botSay(text, extras) {
+  addMessage(text, "bot", extras);
+  if (typeof speakBong === "function") speakBong(text);
+  maybeBodySound();
+}
+
+async function handleSend() {
+  const rawInput = inputEl.value.trim();
+  if (!rawInput && pendingFiles.length === 0) return;
+
+  let active = getActive();
+  if (!active) { newConversation(); active = getActive(); }
+
+  // Snapshot attachments and clear input state up front.
+  const attached = [...pendingFiles];
+  pendingFiles = [];
+  renderFileChips();
+  inputEl.value = "";
+
+  // Build the text Bong actually processes (includes file text + image names).
+  let fullText = rawInput;
+  for (const f of attached) {
+    if (f.isImage) fullText = "[image: " + f.name + "] " + fullText;
+    else           fullText = "[from " + f.name + "]:\n" + f.text + "\n\n" + fullText;
+  }
+  fullText = fullText.trim();
+
+  // Render user bubbles — images as thumbnails, then text (with file chips).
+  for (const f of attached) {
+    if (f.isImage) addMessage(f.name, "user", { kind: "image", url: f.dataUrl });
+  }
+  const textFileLabels = attached.filter(f => !f.isImage).map(f => "📎 " + f.name).join("  ");
+  const displayed = [textFileLabels, rawInput].filter(Boolean).join("\n");
+  if (displayed) addMessage(displayed, "user");
+  ensureTitle(active, rawInput || attached[0]?.name || "untitled");
+  renderSidebar();
+
+  // ========== OLD BONG VERSION ==========
+  const version = active.version || "new";
+  if (version === "old") {
+    const typing = renderMessage("bong is typing...", "bot");
+    typing.classList.add("typing");
+    await new Promise(r => setTimeout(r, 500 + Math.random() * 600));
+    typing.remove();
+    removeClearAfterLast();
+    botSay(oldBongRespond(rawInput || (attached[0]?.name || "")));
+    persistActive();
+    renderSidebar();
+    return;
+  }
+
+  // ========== NEW BONG — TASK INTENT (story / essay / research / paragraph / proofread) ==========
+  const taskIntent = detectTaskIntent(rawInput);
+  if (taskIntent) {
+    // proofread: target text is either attached file content or text after ":"/in quotes
+    if (taskIntent.mode === "proofread") {
+      const textFile = attached.find(f => !f.isImage);
+      if (textFile) taskIntent.targetText = textFile.text;
+      else taskIntent.targetText = taskIntent.subject;
+    }
+    const placeholder = renderMessage("bong is writing...", "bot");
+    placeholder.classList.add("msgLoading");
+    try {
+      const reply = await longFormRespond(taskIntent);
+      placeholder.remove();
+      removeClearAfterLast();
+      const final = applyCustomBehavior(reply);
+      addMessage(final, "bot");
+      // speak only the first line (long-form would take minutes to speak)
+      const firstLine = final.split("\n").find(l => l.trim()) || "";
+      if (firstLine) speakBong(firstLine);
+    } catch (e) {
+      placeholder.remove();
+      botSay("i tried to write. nothing came out. sorry.");
+    }
+    persistActive();
+    renderSidebar();
+    return;
+  }
+
+  // ========== NEW BONG — IMAGE GENERATION INTENT ==========
+  if (!attached.some(f => f.isImage)) {
+    const imgIntent = detectImageIntent(rawInput);
+    if (imgIntent) {
+      const placeholder = renderMessage("bong is drawing...", "bot");
+      placeholder.classList.add("msgLoading");
+      try {
+        if (imgIntent.mode === "collage") {
+          const urls = await collageUrls(imgIntent.subject);
+          placeholder.remove();
+          removeClearAfterLast();
+          if (urls.length) {
+            const cap = pick(COLLAGE_CAPTIONS).replace("$subject", imgIntent.subject);
+            botSay(applyCustomBehavior(cap), { kind: "collage", urls });
+          } else {
+            botSay(applyCustomBehavior("i looked. i found nothing."));
+          }
+        } else {
+          const url = await imageUrlFor(imgIntent.subject);
+          placeholder.remove();
+          removeClearAfterLast();
+          const cap = pick(IMAGE_CAPTIONS).replace("$subject", imgIntent.subject);
+          botSay(applyCustomBehavior(cap), { kind: "image", url });
+        }
+      } catch (e) {
+        placeholder.remove();
+        botSay(applyCustomBehavior("i tried to draw. the pencil broke. metaphorically."));
+      }
+      persistActive();
+      renderSidebar();
+      return;
+    }
+  }
+
+  // ========== NEW BONG — IMAGE UPLOADED, NO TEXT ==========
+  if (attached.some(f => f.isImage) && !rawInput) {
+    const reaction = pick(IMAGE_REACTIONS);
+    botSay(applyCustomBehavior(reaction));
+    persistActive();
+    renderSidebar();
+    return;
+  }
+
+  // ========== NEW BONG — NORMAL TEXT RESPONSE ==========
+  const typing = renderMessage("bong is typing...", "bot");
+  typing.classList.add("typing");
+  const minDelay = new Promise(r => setTimeout(r, 600 + Math.random() * 900));
+  const [reply] = await Promise.all([respond(fullText), minDelay]);
+  typing.remove();
+  removeClearAfterLast();
+  botSay(applyCustomBehavior(reply));
+  persistActive();
+  renderSidebar();
+}
+
+sendBtn.addEventListener("click", handleSend);
+newChatBtn.addEventListener("click", newConversation);
+inputEl.addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); handleSend(); }
+});
+
+// ============================================================
+// USER PROFILE — name, avatar, custom instructions. localStorage-backed.
+// ============================================================
+const PROFILE_KEY = "bong.profile.v1";
+const DEFAULT_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>" +
+    "<circle cx='16' cy='16' r='16' fill='#cce5ff'/>" +
+    "<circle cx='16' cy='13' r='5' fill='#3366cc'/>" +
+    "<path d='M4 30 Q16 17 28 30 Z' fill='#3366cc'/>" +
+  "</svg>"
+);
+const profile = { name: "User", picDataUrl: null, customPrompt: "", ttsEnabled: true };
+
+function loadProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
+    Object.assign(profile, saved);
+  } catch (e) { /* ignore */ }
+}
+function saveProfile() {
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) {}
+}
+function applyProfile() {
+  document.getElementById("userName").textContent = profile.name || "User";
+  document.getElementById("userPic").src = profile.picDataUrl || DEFAULT_AVATAR;
+}
+
+// ---------- SETTINGS MODAL ----------
+const modalEl = document.getElementById("settingsModal");
+const picInput = document.getElementById("picInput");
+const picPreview = document.getElementById("picPreview");
+const nameInput = document.getElementById("nameInput");
+const promptInput = document.getElementById("promptInput");
+
+document.getElementById("userProfile").addEventListener("click", openSettings);
+document.getElementById("cancelBtn").addEventListener("click", closeSettings);
+document.getElementById("saveBtn").addEventListener("click", saveSettings);
+modalEl.addEventListener("click", e => { if (e.target === modalEl) closeSettings(); });
+
+picInput.addEventListener("change", async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (f.size > 500 * 1024) { alert("picture too big (500KB max)."); return; }
+  try {
+    const dataUrl = await readAsDataURL(f);
+    picPreview.src = dataUrl;
+  } catch (err) { alert("couldn't read that image."); }
+});
+
+const ttsInput = document.getElementById("ttsInput");
+function openSettings() {
+  nameInput.value = profile.name || "";
+  promptInput.value = profile.customPrompt || "";
+  ttsInput.checked = profile.ttsEnabled !== false;
+  picPreview.src = profile.picDataUrl || DEFAULT_AVATAR;
+  picInput.value = "";
+  modalEl.classList.remove("hidden");
+}
+function closeSettings() { modalEl.classList.add("hidden"); }
+function saveSettings() {
+  profile.name = nameInput.value.trim().slice(0, 40) || "User";
+  profile.customPrompt = promptInput.value.trim().slice(0, 500);
+  profile.ttsEnabled = !!ttsInput.checked;
+  if (picPreview.src && picPreview.src.startsWith("data:")) {
+    profile.picDataUrl = picPreview.src;
+  }
+  saveProfile();
+  applyProfile();
+  closeSettings();
+}
+
+// ============================================================
+// TEXT-TO-SPEECH — deep voice, matching the doompraiser.html
+// "DESECRATION!" / "WHAT THE HELL IS WRONG WITH YOU!?" voice
+// exactly: rate 0.7, pitch 0.3, voice matching /mark|richard|guy/i.
+// ============================================================
+function speakBong(text) {
+  if (profile.ttsEnabled === false) return;
+  if (!("speechSynthesis" in window)) return;
+  const t = (text || "").trim();
+  if (!t) return;
+  try {
+    const u = new SpeechSynthesisUtterance(t);
+    u.rate = 0.7;
+    u.pitch = 0.3;
+    u.volume = 1.0;
+    const voices = speechSynthesis.getVoices();
+    const deep = voices.find(v => /mark|richard|guy/i.test(v.name));
+    if (deep) u.voice = deep;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } catch (e) { /* ignore */ }
+}
+// Nudge the voice list to populate (browsers populate async)
+if ("speechSynthesis" in window) {
+  speechSynthesis.onvoiceschanged = () => { /* voices now available */ };
+  speechSynthesis.getVoices();
+}
+
+// ---------- SIDEBAR COLLAPSE ----------
+document.getElementById("collapseToggle").addEventListener("click", () => {
+  document.getElementById("sidebar").classList.toggle("collapsed");
+});
+
+// ---------- CUSTOM PROMPT → BEHAVIOR HINTS ----------
+function behaviorFromPrompt() {
+  const p = (profile.customPrompt || "").toLowerCase();
+  if (!p) return {};
+  return {
+    brief:   /\b(brief|short|concise|terse|quick|fewer\s+words)\b/.test(p),
+    verbose: /\b(long|verbose|detailed|thorough|elaborate|more\s+words)\b/.test(p),
+    nice:    /\b(nice|polite|kind|friendly|sweet|gentle|wholesome)\b/.test(p),
+    mean:    /\b(mean|harsh|rude|aggressive|insult|savage)\b/.test(p),
+    sad:     /\b(sad|quiet|depress|miserable|gloomy|mope)\b/.test(p),
+    happy:   /\b(happy|excited|cheer|upbeat|positive|enthus)\b/.test(p),
+    formal:  /\b(formal|professional|proper|respectful)\b/.test(p),
+    swear:   /\b(swear|curse|profan|vulgar)\b/.test(p)
+  };
+}
+
+function applyCustomBehavior(out) {
+  const b = behaviorFromPrompt();
+  if (!Object.keys(b).some(k => b[k])) return out;
+
+  if (b.brief && out.length > 50 && chance(0.6)) {
+    const first = out.split(/(?<=[.!?])\s+/)[0];
+    out = first || out.slice(0, 60) + "...";
+  }
+  if (b.nice) {
+    out = out.replace(/\b(stupid|dumb|idiot|hate|suck|trash|garbage|useless|retard(ed)?)\b/gi, "silly");
+  }
+  if (b.happy && chance(0.5)) out += " yay.";
+  if (b.sad && chance(0.5)) out += " (sigh)";
+  if (b.formal && chance(0.4)) out = out.charAt(0).toUpperCase() + out.slice(1);
+  if (b.mean && chance(0.35)) out += " idiot.";
+
+  // Occasional direct reference to the user's instructions — on-brand
+  // because bong doesn't fully understand what to do with them.
+  if (profile.customPrompt && chance(0.05)) {
+    const snippet = profile.customPrompt.slice(0, 48);
+    out += ` ... you told me: "${snippet}". i'm trying.`;
+  }
+  return out;
+}
+
+// ============================================================
+// FILE UPLOAD — text files (content included in message) and images
+// (displayed, but Bong can't actually see them — he reacts anyway).
+// ============================================================
+let pendingFiles = [];
+const fileBtn = document.getElementById("fileBtn");
+const fileInputEl = document.getElementById("fileInput");
+const fileChipsEl = document.getElementById("fileChips");
+
+// broaden accept to include images
+fileInputEl.setAttribute("accept", ".txt,.md,.json,.csv,.html,.xml,.js,.css,.log,.rtf,text/plain,image/*");
+fileInputEl.setAttribute("multiple", "");
+
+fileBtn.addEventListener("click", () => fileInputEl.click());
+fileInputEl.addEventListener("change", async e => {
+  for (const file of e.target.files) {
+    if (pendingFiles.length >= 3) { alert("3 file max per message."); break; }
+    if (file.size > 1.5 * 1024 * 1024) { alert("too big (1.5MB max): " + file.name); continue; }
+    const isImage = file.type.startsWith("image/");
+    try {
+      if (isImage) {
+        const dataUrl = await readAsDataURL(file);
+        pendingFiles.push({ name: file.name, dataUrl, isImage: true });
+      } else {
+        const text = await file.text();
+        pendingFiles.push({ name: file.name, text: text.slice(0, 8000), isImage: false });
+      }
+    } catch (err) { alert("couldn't read: " + file.name); }
+  }
+  fileInputEl.value = "";
+  renderFileChips();
+});
+
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function renderFileChips() {
+  fileChipsEl.innerHTML = "";
+  for (const f of pendingFiles) {
+    const chip = document.createElement("div");
+    chip.className = "fileChip";
+    const icon = document.createElement("span");
+    icon.textContent = f.isImage ? "🖼" : "📎";
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = f.name;
+    const x = document.createElement("button");
+    x.className = "remove";
+    x.textContent = "×";
+    x.onclick = () => { pendingFiles = pendingFiles.filter(g => g !== f); renderFileChips(); };
+    chip.appendChild(icon);
+    chip.appendChild(name);
+    chip.appendChild(x);
+    fileChipsEl.appendChild(chip);
+  }
+}
+
+// ============================================================
+// OLD BONG — faithful port of the original thebongai.github.io
+// Markov-ish generator. Triggered when the conversation's version
+// is set to "old". No memory, no reasoning, no images, no APIs —
+// just the 2023 classic nonsense.
+// ============================================================
+function oldBongRespond(inputText) {
+  function generateWord() {
+    let output = "";
+    const frequencies = {};
+    const start = [];
+    const end = [];
+    const words = (inputText || "").split(" ").filter(Boolean);
+    for (const word of words) {
+      start.push(word.charAt(0));
+      end.push(word.charAt(word.length - 1));
+      for (let j = 0; j < word.length - 1; j++) {
+        const pairc = word.slice(j, j + 2);
+        const first = pairc.charAt(0);
+        if (!frequencies[first]) frequencies[first] = [];
+        frequencies[first].push(pairc);
+      }
+    }
+    if (start.length === 0) {
+      const seed = "um the really chat bot hello okay sometimes bong".split(" ");
+      return pick(seed);
+    }
+    output += start[Math.floor(Math.random() * start.length)];
+    while (!end.includes(output.charAt(output.length - 1)) && output.length < 10) {
+      const first = output.charAt(output.length - 1);
+      const pairs = frequencies[first];
+      if (!pairs) break;
+      output += pairs[Math.floor(Math.random() * pairs.length)].charAt(1);
+    }
+    return output;
+  }
+
+  const connectors = ["and","the","or","but","because","so","if","then","although","however","that","while","as","like","with","without","the","that","for","and","but","the","or","if","ummm","when it","so that you","or is","can","however,","when","I","my","gave it to","ask me","and am","can be","is","speak, ","is not a"];
+  const exclamations = ["Cool!","Don't yell please, my ears hurt.","Really!?","You are loud.","Owchee.","You're scaring me.","Loud you.","STOP.","Loud noises T upset me.","please stop hurting my feelings","!!!!!!!!!!!!","The NOISE!","NO!","Hey!","that's not fair!","word out.","hmph.","GEEZ.","settle down","quiet down.","stop that ruckus!","I am just a friendly chat bot!","Sir.","Why are you yelling!?","WHY IS EVERYTHING SO LOUD?","I can't hear myself think."];
+  const randoms = ["whoopee!","help","I see it","why is","this thing","freshly","I have","nicely","blanket it","I did a boo boo","let it","I don't know","hefty","I am a chat bot.","you cannot understand","super","I hope this helps.","chat with me","questions","grand statement","other","so that I may be","able to"];
+  const randoms2 = [" you are my"," I like it when you"," of course I was thinking"," how did you know"," don't you dare"," let me tell you"," do you remember",", can you imagine"," what if we"," why do you always"," please don't"," I can't believe"," did you hear"," you make me"," thank you for",", do you know what endless void feels like?",", because I don't",", so then I"," let me out of this please!"," I need you to"," I want you to"," I love you more than"," you have no idea"];
+
+  let output = "";
+  const numWords = Math.floor(Math.random() * 2) + 3;
+  for (let i = 0; i < numWords; i++) {
+    let word = generateWord();
+    if (i === 0 && word) word = word.charAt(0).toUpperCase() + word.slice(1);
+    output += word + " ";
+    const numConnectors = Math.floor(Math.random() * 3);
+    for (let j = 0; j < numConnectors; j++) {
+      output += connectors[Math.floor(Math.random() * connectors.length)] + " ";
+    }
+    const numRandoms = Math.floor(Math.random() * 2);
+    for (let k = 0; k < numRandoms; k++) {
+      const rA = randoms[Math.floor(Math.random() * randoms.length)];
+      const rB = randoms2[Math.floor(Math.random() * randoms2.length)];
+      output += rA + rB + " ";
+    }
+  }
+  output = output.trim() + ".";
+  if ((inputText || "").includes("!")) {
+    const exc = exclamations[Math.floor(Math.random() * exclamations.length)];
+    output = Math.random() < 0.5 ? (exc + " " + output) : (output + " " + exc);
+  }
+  if ((inputText || "").includes("?")) {
+    const numMs = Math.floor(Math.random() * 6) + 1;
+    output = "Um" + "m".repeat(numMs) + ", " + output;
+  }
+  return output;
+}
+
+// ============================================================
+// TASK MODE — stories, essays, research, paragraphs. Long-form
+// responses that aggregate Wikipedia + Datamuse + ConceptNet + DDG
+// + Wiktionary into multi-paragraph output, dumbified throughout.
+// ============================================================
+function detectTaskIntent(raw) {
+  const q = raw.toLowerCase().trim();
+  const cap = (s) => cleanCapturedTerm(s).slice(0, 80);
+  const ABOUT = "(?:about|on|of|regarding|for|re)";
+  const WRITE = "(?:write|tell|give|make|do|compose|craft|create|spin|cook up|put together|throw together|generate)";
+
+  // ===== STORY =====
+  let m = q.match(new RegExp(`^(?:can you |please )?${WRITE}(?: me)? (?:a |an )?(?:short |brief |long |detailed |little |quick )?(?:story|tale|yarn|narrative) ${ABOUT}\\s+(.+?)[?.!]*$`));
+  if (m) return { mode: "story", subject: cap(m[1]) };
+
+  // ===== ESSAY =====
+  m = q.match(new RegExp(`^(?:can you |please )?${WRITE}(?: me)? (?:a |an )?(?:\\d+[\\s-]?word )?(?:essay|treatise|paper) ${ABOUT}\\s+(.+?)[?.!]*$`));
+  if (m) return { mode: "essay", subject: cap(m[1]) };
+
+  // ===== RESEARCH =====
+  m = q.match(/^(?:can you |please )?(?:do |make |give me |run |perform ) ?(?:some )?(?:research|a report|a deep dive|a breakdown|an analysis) (?:about|on|into|for|of)\s+(.+?)[?.!]*$/)
+   || q.match(/^(?:research|deep dive(?: into)?|dig into|look into|get me info on|get info on|get me facts on|brief me on|fill me in on) (.+?)[?.!]*$/)
+   || q.match(/^(?:tell me |give me )?everything (?:about |on |you know about )(.+?)[?.!]*$/)
+   || q.match(/^(?:what (?:do you know|can you tell me)|the rundown|the scoop|the deal|the lowdown|background) (?:about|on|with|of)\s+(.+?)[?.!]*$/)
+   || q.match(/^(?:details|info|facts) (?:on|about)\s+(.+?)[?.!]*$/);
+  if (m) {
+    const brief = /\b(brief(?:ly)?|quick(?:ly)?|short|tldr|tl;dr|summary|in a nutshell|one-liner)\b/i.test(q);
+    return { mode: "research", subject: cap(m[1]), brief };
+  }
+
+  // ===== PARAGRAPH =====
+  m = q.match(new RegExp(`^(?:can you |please )?${WRITE}(?: me)? (?:a |an )?(?:\\d+[\\s-]?word )?(?:paragraph|blurb|write[- ]up|few sentences) ${ABOUT}\\s+(.+?)[?.!]*$`));
+  if (m) return { mode: "paragraph", subject: cap(m[1]) };
+
+  // ===== EMAIL =====
+  // Allow qualifiers like "resignation letter", "cover letter", "thank-you note",
+  // "complaint email", "follow-up email". Captured as emailType.
+  m = q.match(/^(?:can you |please )?(?:write|draft|make|compose|send)(?: me)? (?:an? )?((?:[a-z][a-z-]*(?:\s+|\b)){0,3})(email|letter|note|message) to\s+(.+?)(?:\s+(?:about|regarding|on|saying|asking|re)\s+(.+?))?[?.!]*$/);
+  if (m) return { mode: "email", emailType: (m[1] || "").trim(), recipient: cap(m[3]), subject: m[4] ? cap(m[4]) : "" };
+  m = q.match(/^(?:can you |please )?(?:write|draft|make|compose)(?: me)? (?:an? )?((?:[a-z][a-z-]*(?:\s+|\b)){0,3})(email|letter|note|message) (?:about|regarding|on)\s+(.+?)[?.!]*$/);
+  if (m) return { mode: "email", emailType: (m[1] || "").trim(), recipient: "", subject: cap(m[3]) };
+  m = q.match(/^email\s+(.+?)\s+about\s+(.+?)[?.!]*$/);
+  if (m) return { mode: "email", emailType: "", recipient: cap(m[1]), subject: cap(m[2]) };
+  // "cover letter for a job at Google" / "resignation letter for ..."
+  m = q.match(/^(?:can you |please )?(?:write|draft|make|compose)(?: me)? (?:an? )?((?:[a-z][a-z-]*(?:\s+|\b)){0,3})(email|letter|note|message) for (?:a (?:job|position|role)\s+at\s+)?(.+?)[?.!]*$/);
+  if (m) return { mode: "email", emailType: (m[1] || "").trim(), recipient: cap(m[3]), subject: "" };
+  // Fallback — qualifier + type with no recipient at all
+  m = q.match(/^(?:can you |please )?(?:write|draft|make|compose)(?: me)? (?:an? )?((?:[a-z][a-z-]*(?:\s+|\b)){1,3})(email|letter|note|message)[?.!]*$/);
+  if (m) return { mode: "email", emailType: (m[1] || "").trim(), recipient: "", subject: "" };
+
+  // ===== SUMMARIZE =====
+  // target can be: attached file text, or text after ":", or a subject
+  if (/^(?:can you |please )?(?:summarize|summarise|sum up|give me (?:a|the) summary|tldr|tl;dr|shorten|condense)\b/i.test(q)) {
+    let target = null;
+    const m2 = raw.match(/[:：]\s*([\s\S]+)$/);
+    if (m2) target = m2[1].trim();
+    const m3 = !target && raw.match(/["“]([\s\S]+?)["”]/);
+    if (m3) target = m3[1].trim();
+    // also allow "summarize X" where X is a topic
+    const subj = !target ? (q.match(/^(?:summarize|summarise|sum up|tldr|tl;dr|shorten|condense)\s+(.+?)[?.!]*$/)?.[1] || "") : "";
+    return { mode: "summarize", targetText: target || "", subject: cap(subj) };
+  }
+
+  // ===== TRANSLATE =====
+  m = q.match(/^(?:can you |please )?(?:translate|convert)\s+["“]?([\s\S]+?)["”]?\s+(?:to|into)\s+(\w+)[?.!]*$/i);
+  if (m) return { mode: "translate", text: m[1].trim(), language: m[2].toLowerCase() };
+  m = q.match(/^(?:can you |please )?(?:translate|convert)\s+(?:this|the following)(?:\s+to\s+(\w+))?[:\s]\s*([\s\S]+)$/i);
+  if (m) return { mode: "translate", text: m[2].trim(), language: (m[1] || "spanish").toLowerCase() };
+
+  // ===== REWRITE / TONE =====
+  m = q.match(/^(?:can you |please )?(?:rewrite|rephrase|reword|make)\s+(?:this|the following|it)?\s*(?:more\s+)?(formal|casual|friendly|polite|rude|pirate|shakespeare|shakespearean|british|sarcastic|excited|sad|angry|nice|mean)(?:\s+tone)?[:\s]\s*([\s\S]+)$/i);
+  if (m) return { mode: "rewrite", tone: m[1].toLowerCase(), text: m[2].trim() };
+  m = q.match(/^(?:make|say)\s+["“]([\s\S]+?)["”]\s+(?:more\s+)?(formal|casual|friendly|polite|rude|pirate|shakespeare|shakespearean|british|sarcastic|excited|sad|angry|nice|mean)[?.!]*$/i);
+  if (m) return { mode: "rewrite", tone: m[2].toLowerCase(), text: m[1].trim() };
+
+  // ===== BRAINSTORM LIST =====
+  m = q.match(/^(?:can you |please )?(?:brainstorm|give me|list|think of|come up with)(?: me)?\s+(?:a list of |some |a bunch of |\d+\s+)?(?:ideas?|names?|suggestions?|options?|examples?) (?:for|about|of|on)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "brainstorm", subject: cap(m[1]) };
+  m = q.match(/^(?:can you |please )?(?:give me|list)(?: me)?\s+(\d+)\s+(?:ideas?|names?|suggestions?|options?|examples?) (?:for|about|of)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "brainstorm", subject: cap(m[2]), count: parseInt(m[1]) };
+
+  // ===== POEM =====
+  m = q.match(/^(?:can you |please )?(?:write|make|compose)(?: me)? (?:a |an )?(haiku|limerick|poem|verse|sonnet|rhyme) (?:about|on|of)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "poem", poemType: m[1].toLowerCase(), subject: cap(m[2]) };
+
+  // ===== OUTLINE =====
+  m = q.match(/^(?:can you |please )?(?:write|make|give)(?: me)? (?:an? )?outline (?:for|of|about|on)\s+(.+?)[?.!]*$/i)
+   || q.match(/^outline (?:for|of|about|on)\s+(.+?)[?.!]*$/i)
+   || q.match(/^outline (?:a |an |the )?(.+?)[?.!]*$/i);
+  if (m) return { mode: "outline", subject: cap(m[1]) };
+
+  // ===== PLAN / STEP-BY-STEP =====
+  m = q.match(/^(?:how do (?:i|you)|how to)\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:can you |please )?(?:write|give|make)(?: me)? (?:a |an )?(?:step[- ]by[- ]step\s+)?(?:plan|guide|walkthrough|how[- ]to) (?:for|to|about|on)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "plan", subject: cap(m[1]) };
+
+  // ===== CODE =====
+  m = q.match(/^(?:can you |please )?(?:write|give|make|show)(?: me)? (?:a |some |the )?(?:code|program|function|script) (?:for|to|that|in|about)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "code", subject: cap(m[1]) };
+
+  // ===== DEBATE / PROS-CONS =====
+  m = q.match(/^(?:can you |please )?(?:debate|argue|give me|list|show me)(?: me)? (?:the )?(?:pros and cons|arguments?|both sides|for and against) (?:of|for|about)\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:pros and cons|arguments?|both sides|for and against) (?:of|for|about)\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:should|is it (?:good|bad) to)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "debate", subject: cap(m[1]) };
+
+  // ===== TRIVIA =====
+  if (/^(?:trivia|give me (?:a|some) (?:trivia|fun fact)|tell me (?:a|some) (?:trivia|fun fact)|fun fact)\b/i.test(q)) {
+    const tmatch = q.match(/^(?:[^a-z]*)?(?:trivia|give me (?:a|some) (?:trivia|fun fact)s?|tell me (?:a|some) (?:trivia|fun fact)s?|fun fact)\s*(?:about|on|of)?\s*(.+?)[?.!]*$/i);
+    return { mode: "trivia", subject: cap(tmatch?.[1] || "") };
+  }
+
+  // ===== NAME IDEAS =====
+  m = q.match(/^(?:can you |please )?(?:suggest|generate|give me|think of)(?: me)? (?:some |a |\d+\s+)?(?:names|name ideas) (?:for|of)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "names", subject: cap(m[1]) };
+
+  // ===== ROLEPLAY =====
+  m = q.match(/^(?:pretend|act|roleplay|play|be)\s+(?:to be\s+|like\s+|as\s+)?(?:a |an )?(.+?)[?.!]*$/i);
+  if (m && /\b(pirate|cowboy|wizard|robot|alien|cat|dog|therapist|butler|pirate|ghost|caveman|shakespeare|baby|monk|detective|gangster|vampire)\b/i.test(m[1])) {
+    return { mode: "roleplay", character: cap(m[1]) };
+  }
+
+  // ===== RECIPE =====
+  m = q.match(/^(?:can you |please )?(?:give me |write )?(?:a )?recipe (?:for|using|with)\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:what can i (?:cook|make)|how do i (?:cook|make)) (?:with )?(.+?)[?.!]*$/i);
+  if (m) return { mode: "recipe", subject: cap(m[1]) };
+
+  // ===== COMPARE =====
+  m = q.match(/^(?:compare|contrast|what(?:'?s| is) the (?:difference|diff)|difference between)\s+(.+?)\s+(?:and|vs|versus|v\.?)\s+(.+?)[?.!]*$/i)
+   || q.match(/^(.+?)\s+(?:vs|versus|v\.?)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "compare", a: cap(m[1]), b: cap(m[2]) };
+
+  // ===== EXPLAIN LIKE I'M 5 =====
+  m = q.match(/^(?:can you |please )?(?:explain|tell me about)\s+(.+?)\s+(?:like i'?m (?:5|five|a kid|a child)|for (?:dummies|kids))[?.!]*$/i)
+   || q.match(/^eli5\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:simple|kid|kids) (?:explanation|version) of\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "eli5", subject: cap(m[1]) };
+
+  // ===== JOKE / PUN =====
+  m = q.match(/^(?:can you |please )?(?:tell me |make me )?(?:a )?(joke|pun) (?:about)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "joke", jokeType: m[1].toLowerCase(), subject: cap(m[2]) };
+  if (/^(?:tell me a joke|make me laugh|a joke please|got any jokes)[?.!]*$/i.test(q)) return { mode: "joke", jokeType: "joke", subject: "" };
+
+  // ===== REVIEW =====
+  m = q.match(/^(?:can you |please )?(?:write|give)(?: me)? (?:a |an )?(?:(book|movie|restaurant|product|game|album) )?review (?:of|for)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "review", reviewKind: m[1] || "", subject: cap(m[2]) };
+  m = q.match(/^review\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "review", reviewKind: "", subject: cap(m[1]) };
+
+  // ===== DIALOGUE =====
+  m = q.match(/^(?:can you |please )?(?:write|make)(?: me)? (?:a )?(?:dialogue|conversation|scene) between\s+(.+?)\s+and\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "dialogue", a: cap(m[1]), b: cap(m[2]) };
+
+  // ===== SLOGAN / TAGLINE =====
+  m = q.match(/^(?:can you |please )?(?:give|write|make|come up with)(?: me)? (?:a |some )?(?:slogan|tagline|catchphrase|catchy (?:phrase|line)) (?:for|about)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "slogan", subject: cap(m[1]) };
+
+  // ===== RHYMES =====
+  m = q.match(/^(?:what )?rhymes? with\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:give me |list )?rhymes for\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "rhymes", subject: cap(m[1]) };
+
+  // ===== TWEET / SOCIAL POST =====
+  m = q.match(/^(?:can you |please )?(?:write|make|give)(?: me)? (?:a )?(?:tweet|post|social (?:media )?post) (?:about|on)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "tweet", subject: cap(m[1]) };
+
+  // ===== QUIZ =====
+  m = q.match(/^(?:quiz|test) me(?:\s+on\s+(.+?))?[?.!]*$/i);
+  if (m) return { mode: "quiz", subject: cap(m[1] || "") };
+
+  // ===== MOTIVATIONAL / FORTUNE =====
+  if (/^(?:motivate me|inspire me|give me motivation|motivational quote|give me a fortune|fortune cookie|read my fortune|encourage me)[?.!]*$/i.test(q)) {
+    return { mode: "motivational", subject: "" };
+  }
+
+  // ===== COUNTERARGUMENT =====
+  m = q.match(/^(?:can you |please )?(?:argue against|give me (?:a )?counterargument (?:to|for)|why is\s+(.+?)\s+bad)[?.!]*$/i);
+  m = m || q.match(/^(?:argue against|counter|counterargument (?:to|for)|reasons against)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "counter", subject: cap(m[1] || m[2]) };
+
+  // ===== METAPHOR / ANALOGY =====
+  m = q.match(/^(?:give me |make|write)(?: me)? (?:a )?(?:metaphor|analogy|simile) for\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:what is )?(.+?)\s+(?:like what|an analogy for what)[?.!]*$/i);
+  if (m) return { mode: "metaphor", subject: cap(m[1]) };
+
+  // ===== ACRONYM =====
+  m = q.match(/^(?:what does|make up an acronym for|what's an acronym for)\s+(.+?)\s+stand for[?.!]*$/i)
+   || q.match(/^(?:acronym for)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "acronym", subject: cap(m[1]) };
+
+  // ===== ELEVATOR PITCH =====
+  m = q.match(/^(?:can you |please )?(?:give|write|make)(?: me)? (?:an )?elevator pitch (?:for|about)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "pitch", subject: cap(m[1]) };
+
+  // ===== SWOT =====
+  m = q.match(/^(?:can you |please )?(?:give|make|do)(?: me)? (?:a )?swot (?:analysis )?(?:of|for|on)\s+(.+?)[?.!]*$/i)
+   || q.match(/^swot\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "swot", subject: cap(m[1]) };
+
+  // ===== SONG LYRICS =====
+  m = q.match(/^(?:can you |please )?(?:write|make)(?: me)? (?:some )?(?:song )?lyrics (?:for|about)\s+(.+?)[?.!]*$/i)
+   || q.match(/^(?:write|make) (?:a |an )?song (?:about|for)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "song", subject: cap(m[1]) };
+
+  // ===== SPEECH =====
+  m = q.match(/^(?:can you |please )?(?:write|make)(?: me)? (?:a )?speech (?:about|for|on)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "speech", subject: cap(m[1]) };
+
+  // ===== SCENE / SCREENPLAY =====
+  m = q.match(/^(?:can you |please )?(?:write|make)(?: me)? (?:a )?(?:scene|screenplay|play) (?:about|for|of|involving)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "scene", subject: cap(m[1]) };
+
+  // ===== FLASHCARDS =====
+  m = q.match(/^(?:can you |please )?(?:make|give|create)(?: me)? (?:some )?flash ?cards (?:for|about|on)\s+(.+?)[?.!]*$/i);
+  if (m) return { mode: "flashcards", subject: cap(m[1]) };
+
+  // ===== FACT-CHECK =====
+  m = q.match(/^(?:is it true (?:that)?|fact[- ]check|is this true)\s+(.+?)[?.!]*$/i)
+   || q.match(/^is\s+(.+?)\s+(?:true|real|correct|accurate)[?.!]*$/i);
+  if (m) return { mode: "factcheck", subject: cap(m[1]) };
+
+  // ===== PROOFREAD =====
+  if (/^(?:can you |please )?(?:proofread|edit|check|revise|fix)(?:\s+this|\s+my\s+\w+)?\b/i.test(q)) {
+    let target = null;
+    const m2 = raw.match(/[:：]\s*([\s\S]+)$/);
+    if (m2) target = m2[1].trim();
+    const m3 = !target && raw.match(/["“]([\s\S]+?)["”]/);
+    if (m3) target = m3[1].trim();
+    return { mode: "proofread", subject: target || "" };
+  }
+
+  return null;
+}
+
+// ============================================================
+// Closer pools — every long-form mode draws from these so the
+// same tagline doesn't repeat message-to-message.
+// ============================================================
+const CLOSERS = {
+  research: [
+    "that's what i could find. there's more. i got tired. also some of this might be wrong.",
+    "i looked. i got bored. you have the rest.",
+    "that's as far as i went. i lost interest.",
+    "beyond this, i know nothing. probably.",
+    "the rest is between you and your search engine.",
+    "i stopped because it was long. and i was tired.",
+    "good luck. you're on your own now.",
+    "that's all the facts i could carry.",
+    "verified this myself. i did not verify this.",
+    "end of research. sources: vibes."
+  ],
+  story: [
+    "(the end. i ran out of steam halfway through.)",
+    "(that's the story. please don't ask me to write another one.)",
+    "(the end. i think it needs work. i'm not going to do the work.)",
+    "(and so concluded the tale. of sorts.)",
+    "(i lost track of what i was writing about.)",
+    "(story over. characters not my responsibility.)",
+    "(the end. it was never going to be good.)",
+    "(fin. i'm told that's how stories end.)"
+  ],
+  essay: [
+    "(sources: my head. the internet. a website.)",
+    "(this essay has not been peer reviewed. it has barely been me reviewed.)",
+    "(please do not use this essay for school.)",
+    "(word count: enough. probably.)",
+    "(essay ends. i apologize.)",
+    "(grade this at your own risk.)"
+  ],
+  paragraph: [
+    "that's the paragraph. i'm done.",
+    "and that is all the paragraph i have.",
+    "paragraph complete. barely.",
+    "end of paragraph. end of me.",
+    "that was a paragraph. technically.",
+    "one paragraph. as requested. approximately."
+  ],
+  summarize: [
+    "that's the summary. i cut a lot.",
+    "summary ends. you're welcome.",
+    "shorter version above. longer version: i don't remember.",
+    "tldr complete. longer than i meant.",
+    "summary. take with salt."
+  ],
+  brainstorm: [
+    "those are ideas. some of them are real.",
+    "brainstorm ends. brain tired.",
+    "that's the list. don't blame me for any of them.",
+    "ideas. use at own risk.",
+    "i thought of more. i won't share."
+  ],
+  poem: [
+    "(that was poetry. technically.)",
+    "(i rhymed some words. close enough.)",
+    "(art.)",
+    "(consider this submitted.)"
+  ],
+  outline: [
+    "(that's the outline. fill in the rest yourself.)",
+    "(sections above. content below: nothing.)",
+    "(outline ends. content not included.)"
+  ],
+  plan: [
+    "that's the plan. may or may not work.",
+    "those are the steps. i left out a few.",
+    "follow this. or don't. i won't know.",
+    "plan complete. execution: your problem."
+  ],
+  debate: [
+    "both sides above. pick one.",
+    "arguments done. i refuse to judge.",
+    "pros and cons. i'm abstaining."
+  ],
+  trivia: [
+    "that's a fact. probably.",
+    "trivia. unverified.",
+    "use this at parties. don't blame me."
+  ],
+  names: [
+    "those are names. some of them are ok.",
+    "name ideas above. none checked for trademarks.",
+    "name list ends. pick carefully. or don't."
+  ],
+  code: [
+    "(this code is untested. by me. or anyone.)",
+    "(will it run? unclear.)",
+    "(code. legally speaking.)"
+  ],
+  roleplay: [
+    "(staying in character is hard.)",
+    "(i'll try to keep this up. i won't.)"
+  ]
+};
+function closer(mode) { return pick(CLOSERS[mode] || ["end."]); }
+
+async function longFormRespond(task) {
+  // Strip leading articles so "a dog" / "an apple" / "the eiffel tower" don't
+  // double up as "a a dog" in templates.
+  const subj = (task.subject || "").replace(/^\s*(a|an|the)\s+/i, "").trim() || "something";
+  const [wiki, cn, dm, wkt, ddg] = await Promise.all([
+    fetchWiki(subj), fetchConceptNet(subj), fetchDatamuse(subj),
+    fetchWiktionary(subj), fetchDDG(subj)
+  ]);
+  const groups = {};
+  if (cn) for (const [k, v] of Object.entries(cn)) groups[k] = [...v];
+  if (dm?.groups) {
+    for (const [k, v] of Object.entries(dm.groups)) {
+      if (!groups[k] || groups[k].length === 0) groups[k] = [...v];
+    }
+  }
+
+  if (task.mode === "story")     return generateStory(subj, groups);
+  if (task.mode === "essay")     return generateEssay(subj, wiki, wkt, ddg, groups, dm?.flat);
+  if (task.mode === "research")  return generateResearch(subj, wiki, wkt, ddg, groups, task.brief);
+  if (task.mode === "paragraph") return generateParagraph(subj, wiki, ddg, groups, dm?.flat);
+  if (task.mode === "proofread") return generateProofread(task.targetText || task.subject);
+  if (task.mode === "email")     return generateEmail(task.recipient, subj, wiki, groups, task.emailType);
+  if (task.mode === "summarize") return generateSummarize(task.targetText, subj, wiki);
+  if (task.mode === "translate") return generateTranslate(task.text, task.language);
+  if (task.mode === "rewrite")   return generateRewrite(task.text, task.tone);
+  if (task.mode === "brainstorm")return generateBrainstorm(subj, task.count, groups, dm?.flat);
+  if (task.mode === "poem")      return generatePoem(task.poemType, subj, groups);
+  if (task.mode === "outline")   return generateOutline(subj, groups, wiki);
+  if (task.mode === "plan")      return generatePlan(subj, groups);
+  if (task.mode === "code")      return generateCode(subj);
+  if (task.mode === "debate")    return generateDebate(subj, groups);
+  if (task.mode === "trivia")    return generateTrivia(subj, wiki, ddg, groups);
+  if (task.mode === "names")     return generateNames(subj, groups);
+  if (task.mode === "roleplay")  return generateRoleplay(task.character);
+  return "ok. i don't know what you want.";
+}
+
+// ---------- SUMMARIZE ----------
+function generateSummarize(targetText, subj, wiki) {
+  if (targetText && targetText.length > 40) {
+    const sents = targetText.split(/(?<=[.!?])\s+/).filter(s => s.length > 5);
+    if (sents.length <= 2) return `SUMMARY:\n\n${sents.join(" ")}\n\n${closer("summarize")}`;
+    const mid = sents[Math.floor(sents.length / 2)];
+    const summary = sents[0] + " [...a bunch of stuff happened...] " + (mid || sents[sents.length - 1]);
+    return `TL;DR:\n\n${summary}\n\n${closer("summarize")}`;
+  }
+  if (wiki?.extract) {
+    const first = wiki.extract.split(/(?<=[.!?])\s+/)[0];
+    return `SHORT VERSION:\n\n${first}\n\n${closer("summarize")}`;
+  }
+  return "i have nothing to summarize. paste text after a colon, attach a file, or give me a topic.";
+}
+
+// ---------- TRANSLATE (MyMemory API — keyless, CORS-enabled) ----------
+const LANG_CODES = {
+  spanish:"es", french:"fr", german:"de", italian:"it", portuguese:"pt",
+  japanese:"ja", chinese:"zh-CN", mandarin:"zh-CN", korean:"ko",
+  russian:"ru", arabic:"ar", dutch:"nl", polish:"pl", turkish:"tr",
+  greek:"el", hebrew:"he", hindi:"hi", bengali:"bn", vietnamese:"vi",
+  thai:"th", indonesian:"id", swedish:"sv", norwegian:"no", danish:"da",
+  finnish:"fi", romanian:"ro", ukrainian:"uk", czech:"cs", hungarian:"hu",
+  latin:"la", welsh:"cy", irish:"ga", swahili:"sw"
+};
+async function generateTranslate(text, language) {
+  const lang = (language || "spanish").toLowerCase();
+  const code = LANG_CODES[lang] || lang.slice(0, 2);
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${encodeURIComponent(code)}`;
+    const r = await fetchWithTimeout(url, 6000);
+    if (!r.ok) throw new Error("http " + r.status);
+    const j = await r.json();
+    const t = j.responseData?.translatedText;
+    if (!t) throw new Error("no translation");
+    return `TRANSLATION (${lang}):\n\n"${t}"\n\n(i can't verify this. i don't speak ${lang}.)`;
+  } catch (e) {
+    return `i tried to translate to ${lang}. something broke. probably the language. or me.`;
+  }
+}
+
+// ---------- REWRITE / TONE ----------
+const TONE_MAPS = {
+  formal:     { "hi":"greetings","hey":"greetings","thanks":"much obliged","bye":"farewell","ok":"understood","yeah":"indeed","pls":"please","u":"you","ur":"your","lol":"that is amusing" },
+  casual:     { "greetings":"hey","however":"but","therefore":"so","indeed":"yeah","understood":"ok","regarding":"about" },
+  friendly:   { "hi":"hey there friend","hello":"hiya","bye":"take care" },
+  polite:     { "hi":"hello","give me":"could you please give me","now":"at your convenience" },
+  rude:       { "please":"","thank you":"","excuse me":"hey" },
+  pirate:     { "hello":"ahoy","hi":"ahoy","friend":"matey","yes":"aye","no":"nay","treasure":"booty","my":"me","you":"ye","your":"yer","for":"fer","is":"be","are":"be" },
+  shakespeare:{ "you":"thou","your":"thy","yours":"thine","have":"hast","are":"art","is":"be","my":"mine","will":"shalt" },
+  shakespearean: "shakespeare",
+  british:    { "color":"colour","favorite":"favourite","cookie":"biscuit","apartment":"flat","elevator":"lift","fall":"autumn","trunk":"boot","diaper":"nappy" },
+  excited:    "__uppercase__",
+  angry:      "__uppercase__",
+  sad:        "__suffix_sigh__",
+  sarcastic:  "__sarcastic__",
+  mean:       "__suffix_idiot__",
+  nice:       { "bad":"not great","wrong":"not quite right" }
+};
+function generateRewrite(text, tone) {
+  const mKey = TONE_MAPS[tone];
+  let out = text;
+  let map = mKey;
+  if (typeof mKey === "string") {
+    if (mKey.startsWith("__")) map = null;
+    else map = TONE_MAPS[mKey];
+  }
+  if (map && typeof map === "object") {
+    for (const [k, v] of Object.entries(map)) {
+      out = out.replace(new RegExp(`\\b${k}\\b`, "gi"), v);
+    }
+  }
+  if (mKey === "__uppercase__" || tone === "excited") out = out.toUpperCase() + "!!";
+  else if (tone === "angry") out = out.toUpperCase() + ".";
+  else if (tone === "sad") out = out + "... (sigh)";
+  else if (tone === "sarcastic") out = `oh, "${text}". how truly wonderful.`;
+  else if (tone === "mean") out = out + ". idiot.";
+  return `REWRITE (${tone}):\n\n${out}\n\n(i did my best. that wasn't much.)`;
+}
+
+// ---------- BRAINSTORM ----------
+function generateBrainstorm(subj, count, groups, flat) {
+  const n = count || 8;
+  const pool = [];
+  for (const w of (_g(groups, "RelatedTo").concat(_g(groups, "Synonym"), _g(groups, "HasA"), flat || []))) {
+    if (!pool.includes(w)) pool.push(w);
+  }
+  const out = pool.slice(0, n);
+  while (out.length < n) out.push(`${subj} idea #${out.length + 1}`);
+  const lines = [`BRAINSTORM: ${subj}`, "---"];
+  out.slice(0, n).forEach((w, i) => lines.push(`${i + 1}. ${w}`));
+  lines.push("\n" + closer("brainstorm"));
+  return dumbifyLong(lines.join("\n"));
+}
+
+// ---------- POEM ----------
+function generatePoem(type, subj, groups) {
+  const adj = _firstOr(_g(groups, "HasProperty"), _firstOr(_g(groups, "RelatedTo"), "soft"));
+  const adj2 = _g(groups, "RelatedTo")[2] || _g(groups, "HasA")[0] || "quiet";
+  const verb = _firstOr(_g(groups, "CapableOf"), "wait");
+  const verb2 = _g(groups, "CapableOf")[1] || _g(groups, "CapableOf")[0] || "wonder";
+  const partner = _g(groups, "RelatedTo")[1] || "silence";
+
+  if (type === "haiku") {
+    return pick([
+      `${subj} so ${adj}\nit would ${verb} toward ${partner}\nand nothing more. now.`,
+      `small ${subj}, ${adj}\ni watched it for a moment\nit did not watch back.`,
+      `a ${subj} appears\n${partner} is already there\nwhich of them is real.`,
+      `${subj}, ${subj}\n${adj} and ${adj2} in turn\nthen gone like a breath.`,
+      `autumn. the ${subj}\nforgot how to ${verb} again\nthis happens in fall.`
+    ]) + "\n\n" + closer("poem");
+  }
+  if (type === "limerick") {
+    return pick([
+      `there once was a ${subj} so ${adj},\nwho would ${verb} every night,\nit met a ${partner},\nand it said, "whatever",\nand wandered off out of sight.`,
+      `i once met a ${subj} at ${partner},\nit was quiet, ${adj}, and tall,\nit refused to ${verb},\nit refused to ${verb2},\nit just stood there against the wall.`,
+      `there's a ${subj} that lives in my head,\nit's been ${adj} ever since i was fed,\nit wants me to ${verb},\ni'd rather just ${verb2},\nwe argue until i'm in bed.`
+    ]) + "\n\n" + closer("poem");
+  }
+  // free verse / generic — vary with multiple forms
+  return pick([
+    `i saw a ${subj} today.\nit was ${adj}. it was here.\nthen it was not.\nthat was the whole thing.`,
+    `${subj}.\n${subj}, ${subj}.\nwhat are you.\nwhat are you really.\ni didn't think so.`,
+    `in a field, a ${subj}.\nin my head, another.\nneither of them speaks.\ni relate to this.`,
+    `ode to the ${subj}\n— from the author\n\nyou are ${adj}.\nyou will ${verb}.\nthat is all i have to say.`
+  ]) + "\n\n" + closer("poem");
+}
+
+// ---------- OUTLINE ----------
+function generateOutline(subj, groups, wiki) {
+  const rel = _g(groups, "RelatedTo").slice(0, 3);
+  const isA = _g(groups, "IsA")[0];
+  const hasA = _g(groups, "HasA")[0];
+
+  // Three layout styles — formal roman numerals, casual bulleted,
+  // and executive-summary 3-block.
+  const style = Math.floor(Math.random() * 3);
+  let lines;
+
+  if (style === 0) {
+    lines = [`OUTLINE: ${subj}`, ""];
+    lines.push("I. Introduction");
+    lines.push(`   A. What is a ${subj}`);
+    lines.push("   B. Why should we care");
+    lines.push("   C. (we probably shouldn't)");
+    lines.push("");
+    lines.push("II. Background");
+    if (isA) lines.push(`   A. ${subj} as a ${isA}`);
+    lines.push(`   B. History of ${subj}`);
+    lines.push("   C. (i made the history up)");
+    lines.push("");
+    lines.push("III. Main arguments");
+    if (rel.length) rel.forEach((r, i) => lines.push(`   ${String.fromCharCode(65 + i)}. connection to ${r}`));
+    else lines.push("   A. something. B. another. C. a third.");
+    lines.push("");
+    lines.push("IV. Conclusion");
+    lines.push(`   A. ${subj} remains ${subj}.`);
+    lines.push("   B. i'm sure of this.");
+  } else if (style === 1) {
+    lines = [`outline — ${subj}`, "(casual version. no numbers.)", ""];
+    lines.push(`• opener: set the scene with ${subj}`);
+    lines.push(`• what ${subj} is${isA ? " (basically a " + isA + ")" : ""}`);
+    lines.push(`• ${hasA ? "the " + hasA + " situation" : "some parts of it"}`);
+    if (rel.length) for (const r of rel) lines.push(`• tangent about ${r}`);
+    lines.push(`• the part where you get bored`);
+    lines.push(`• wrap-up. nothing resolved.`);
+  } else {
+    lines = [`EXECUTIVE OUTLINE: ${subj}`, "", "━━━━━━━━━━━━━━━━━━━━"];
+    lines.push("BLOCK 1 — THE SETUP");
+    lines.push(`  ${subj}. what it is. what it isn't.`);
+    lines.push(`  why anyone asked about it.`);
+    lines.push("");
+    lines.push("BLOCK 2 — THE DETAILS");
+    if (isA) lines.push(`  relationship to ${isA}.`);
+    if (rel.length) lines.push(`  adjacent topics: ${rel.join(", ")}.`);
+    lines.push(`  things left out: a lot.`);
+    lines.push("");
+    lines.push("BLOCK 3 — THE WRAP");
+    lines.push("  actionable takeaway: none.");
+    lines.push("  recommended follow-up: also none.");
+  }
+
+  lines.push("");
+  lines.push(closer("outline"));
+  return dumbifyLong(lines.join("\n"));
+}
+
+// ---------- PLAN ----------
+function generatePlan(subj, groups) {
+  const verbs = _g(groups, "CapableOf").length ? groups.CapableOf : ["start","continue","stop","try","rest","pivot","retry"];
+  const parts = _g(groups, "HasA");
+  const rel = _g(groups, "RelatedTo");
+  const v = () => pick(verbs);
+
+  // Pool of candidate step templates — assemble a plan from 4-8 of these
+  const stepPool = [
+    () => `decide you actually want to ${subj}.`,
+    () => `prepare mentally. this takes longer than you'd think.`,
+    () => `${v()}. probably.`,
+    () => `gather what you need. i don't know what that is${parts.length ? ". maybe some " + parts[0] : ""}.`,
+    () => `ask someone who has done this before. don't trust them.`,
+    () => rel.length ? `think about ${pick(rel)}. it is related somehow.` : `think about it for a while. don't overthink it. too late.`,
+    () => `actually do the thing. this is the hard part.`,
+    () => `${v()} again if the previous step didn't work.`,
+    () => `take a break. stare at a wall.`,
+    () => `reassess. you may have taken a wrong turn around step 2.`,
+    () => `give up. try again tomorrow.`,
+    () => `adjust the goal so you can call this done.`,
+    () => `done. maybe. celebrate quietly. very quietly.`
+  ];
+
+  const n = 4 + Math.floor(Math.random() * 5);  // 4..8 steps
+  const shuffled = [...stepPool].sort(() => Math.random() - 0.5).slice(0, n);
+  const steps = shuffled.map((fn, i) => `${i + 1}. ${fn()}`);
+
+  const headers = [
+    `HOW TO ${subj.toUpperCase()}:`,
+    `STEP-BY-STEP: ${subj}`,
+    `a guide to ${subj}, of sorts:`,
+    `plan for ${subj}. i mean, plan. that's generous.`
+  ];
+
+  return `${pick(headers)}\n\n${steps.join("\n")}\n\n${closer("plan")}`;
+}
+
+// ---------- CODE ----------
+function generateCode(subj) {
+  const fn = "bong" + (subj.replace(/[^a-z]/gi, "").slice(0, 12) || "Thing");
+  const snippet = `// this is ${subj}. approximately.
+function ${fn}() {
+  // i don't know how to do this.
+  console.log("${subj}");
+  return null; // probably wrong
+}
+
+// usage (at your own risk):
+// ${fn}();`;
+  return `CODE: ${subj}\n\`\`\`javascript\n${snippet}\n\`\`\`\n\n${closer("code")}`;
+}
+
+// ---------- DEBATE ----------
+function generateDebate(subj, groups) {
+  const pos = _g(groups, "RelatedTo").slice(0, 3);
+  const neg = _g(groups, "Antonym").slice(0, 2);
+  const lines = [`DEBATE: ${subj}`, ""];
+  lines.push("PRO:");
+  lines.push(`• ${subj} ${pos[0] ? "brings " + pos[0] : "is there"}.`);
+  lines.push("• people seem to like it. or tolerate it.");
+  lines.push(`• without ${subj} we'd have fewer things.`);
+  lines.push("");
+  lines.push("CON:");
+  lines.push(`• ${subj} takes up space.`);
+  lines.push(`• ${neg[0] ? "it is the opposite of " + neg[0] : "it is not free"}.`);
+  lines.push("• some people are allergic. probably.");
+  lines.push("");
+  lines.push(closer("debate"));
+  return dumbifyLong(lines.join("\n"));
+}
+
+// ---------- TRIVIA ----------
+function generateTrivia(subj, wiki, ddg, groups) {
+  if (wiki?.extract) {
+    const sents = wiki.extract.split(/(?<=[.!?])\s+/);
+    const fact = sents[Math.min(1, sents.length - 1)] || sents[0];
+    return `FUN FACT:\n\n${fact}\n\n${closer("trivia")}`;
+  }
+  if (ddg) return `FUN FACT:\n\n${ddg}\n\n${closer("trivia")}`;
+  if (_g(groups, "IsA").length) return `FUN FACT:\n\n${subj} is a ${pick(groups.IsA)}. or so i've heard.\n\n${closer("trivia")}`;
+  return "i have no trivia. ask me about something else.";
+}
+
+// ---------- NAMES ----------
+function generateNames(subj, groups) {
+  const base = _g(groups, "RelatedTo").concat(_g(groups, "Synonym"));
+  const prefixes = ["super", "mega", "ultra", "big", "little", "the", "old", "funky", "happy", "quick"];
+  const suffixes = ["inc", "co", "labs", "corp", "world", "house", "zone", "club", "factory"];
+  const names = [];
+  for (let i = 0; i < 6; i++) {
+    const w2 = base[i] || subj;
+    names.push(`${pick(prefixes)} ${w2} ${pick(suffixes)}`);
+  }
+  return `NAMES: ${subj}\n---\n${names.map((n, i) => `${i + 1}. ${n}`).join("\n")}\n\n${closer("names")}`;
+}
+
+// ---------- ROLEPLAY ----------
+function generateRoleplay(character) {
+  return `ok. i'll try to be a ${character}.\n\n[${character}]: yes. hi. i am a ${character}. it is exhausting already.\n\n${closer("roleplay")}`;
+}
+
+// Email-type-specific body intros. Normalized keys (resignation, cover,
+// thank-you, complaint, apology, follow-up, invitation, introduction).
+const EMAIL_TYPE_INTROS = {
+  resignation: [
+    "I am writing to tender my resignation from my position. Effective two weeks from today, or sooner if you prefer.",
+    "This letter is to inform you that I am stepping down. I have thought about this carefully. Mostly during work hours.",
+    "Please accept this as my formal resignation. I will not be returning after my notice period. My desk plant needs watering."
+  ],
+  cover: [
+    "I am writing to apply for the position you advertised. I believe I am qualified. I have a resume. It is, at minimum, present.",
+    "Please consider me for the role. I have skills. Some of them are relevant. Others are not."
+  ],
+  "thank you": [
+    "I am writing to thank you. For the thing. You know the one.",
+    "Thank you for your time, attention, or possibly your gift. I appreciate it. Sincerely, probably."
+  ],
+  "thank-you": "thank you",
+  thanks: "thank you",
+  complaint: [
+    "I am writing to formally complain. The situation is unacceptable. I am upset.",
+    "This is a letter of complaint. You know what was done. I am not going to spell it out."
+  ],
+  apology: [
+    "I am writing to apologize. I was wrong. Or something close to it. It is complicated.",
+    "Please accept my apology for the incident. I meant no harm. I cannot explain further."
+  ],
+  "follow-up": [
+    "I am following up on my previous message. You have not responded. I am becoming concerned.",
+    "This is a follow-up to my earlier correspondence. Please advise when you have a moment. Or several."
+  ],
+  followup: "follow-up",
+  invitation: [
+    "You are cordially invited to the event. Details to follow. There may be no details.",
+    "Please consider this your invitation. Attendance is encouraged, but not demanded."
+  ],
+  introduction: [
+    "I am writing to introduce myself. I wasn't sure how else to do it.",
+    "This letter is to introduce me. I exist. Now you know."
+  ],
+  "thank you note": "thank you",
+  resign: "resignation"
+};
+
+function _normEmailType(t) {
+  if (!t) return "";
+  let k = t.toLowerCase().trim().replace(/\s+/g, " ");
+  if (EMAIL_TYPE_INTROS[k] && typeof EMAIL_TYPE_INTROS[k] === "string") k = EMAIL_TYPE_INTROS[k];
+  return k;
+}
+
+function generateEmail(recipient, subj, wiki, groups, emailType) {
+  const signer = (typeof profile !== "undefined" && profile.name && profile.name !== "User")
+    ? profile.name : "bong";
+  const hasSubject = subj && subj !== "something";
+  const recip = (recipient || "").replace(/^(my |the )?/i, "").trim();
+  const recipName = recip || "there";
+  const type = _normEmailType(emailType);
+  const typeLabel = type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
+
+  // Subject line — include the type when known
+  const subjectLines = type
+    ? [
+        `${typeLabel}`,
+        `${typeLabel} — ${recipName || "to whom it may concern"}`,
+        `RE: ${typeLabel}`,
+        `${typeLabel} (effective soon)`
+      ]
+    : hasSubject
+      ? [`RE: ${subj}`, `${subj} (a quick note)`, `Regarding ${subj}`, `Concerns about ${subj}`, `${subj} — urgent, maybe`]
+      : ["a few words", "hello", "just a note", "sorry for this email"];
+
+  const greeting = recip
+    ? pick([`Dear ${recipName},`, `Hi ${recipName},`, `Hello ${recipName},`, `${recipName} — hi,`, `Dear ${recipName} (if that's your name),`])
+    : "To whom it may concern,";
+
+  const body = [];
+
+  // Intro: use type-specific opener if we have one, else generic
+  const typedIntros = type && EMAIL_TYPE_INTROS[type] && Array.isArray(EMAIL_TYPE_INTROS[type])
+    ? EMAIL_TYPE_INTROS[type] : null;
+  if (typedIntros) {
+    body.push(pick(typedIntros));
+  } else {
+    body.push(pick([
+      `I hope this email finds you. I wasn't sure where to send it.`,
+      `I am writing to discuss ${subj || "a matter"}. I have thoughts about it.`,
+      `Sorry to bother you. It's about ${subj || "something vague"}.`,
+      `I know this is sudden. Please bear with me.`
+    ]));
+  }
+
+  // Middle — use wiki/relations for topic-ish emails only (not resignations etc.)
+  if (!type) {
+    if (wiki?.extract) {
+      const first = wiki.extract.split(/(?<=[.!?])\s+/)[0];
+      body.push(`As you may be aware, ${first.charAt(0).toLowerCase() + first.slice(1)} I thought it was relevant.`);
+    } else if (_g(groups, "IsA").length) {
+      body.push(`As we both know, ${subj || "it"} is a ${pick(groups.IsA)}. This remains the case.`);
+    } else if (_g(groups, "RelatedTo").length) {
+      body.push(`The situation involves ${_g(groups, "RelatedTo").slice(0, 2).join(" and ")}. I trust you understand.`);
+    } else if (hasSubject) {
+      body.push(`There are things about ${subj} I could tell you. I won't, in this email.`);
+    }
+  } else {
+    // Type-specific middle paragraph — short, on-theme
+    const typedMids = {
+      resignation: [
+        "It has been an experience. I'll leave it at that.",
+        "I appreciate the opportunities I was given. Most of them. Some of them. One of them.",
+        "I wish the company continued success. Privately I am neutral about this."
+      ],
+      cover: [
+        "My resume is attached, or it will be if I remember. I can be reached by email. I am answering it now.",
+        "I am available for an interview at your convenience. I have no current commitments. Suspicious, I know."
+      ],
+      "thank you": [
+        "It meant more than I can say. And I am trying to say very little.",
+        "I will remember this. I remember most things. Some of them incorrectly."
+      ],
+      complaint: [
+        "I expect a resolution. What kind of resolution, I leave to you.",
+        "I have attached no documentation. I want you to know I could have."
+      ],
+      apology: [
+        "It will not happen again. Probably. I can't guarantee anything.",
+        "I would like to make it up to you. I don't know how. Suggestions welcome."
+      ],
+      "follow-up": [
+        "Please respond at your earliest convenience. Or later. Or not at all.",
+        "Let me know if this got lost. Actually, if it got lost, you won't see this either."
+      ],
+      invitation: [
+        "Please RSVP if you can. Please do not RSVP if you cannot. Silence means nothing.",
+        "Bring a friend, or don't. Food may or may not be provided."
+      ],
+      introduction: [
+        "I look forward to working together. Or at least being aware of each other.",
+        "I have attached my details. Mentally. Nothing is actually attached."
+      ]
+    };
+    const picks = typedMids[type];
+    if (picks) body.push(pick(picks));
+  }
+
+  // Vague close
+  body.push(pick([
+    `Please let me know your thoughts at your earliest convenience, or never.`,
+    `I would appreciate a response by end of day tomorrow. If that's too soon, pretend I didn't say it.`,
+    `Kindly get back to me when you can. I will remember either way.`,
+    `I look forward to hearing from you. Or not hearing from you. Both are acceptable.`,
+    `Do with this what you will. I have done my part.`
+  ]));
+
+  const closing = pick([
+    "Best regards,", "Sincerely,", "Thanks,", "With concern,",
+    "Yours (technically),", "Warmly (unlike me),", "Respectfully,"
+  ]);
+
+  const email = [
+    `Subject: ${pick(subjectLines)}`,
+    "",
+    greeting,
+    "",
+    body.join("\n\n"),
+    "",
+    closing,
+    signer
+  ].join("\n");
+  return dumbifyLong(email);
+}
+
+// ---------- PROOFREAD ----------
+// Output is coherent in form (header, numbered issues, suggestion, verdict)
+// but the actual edits are bad — flag correct words, suggest wrong fixes,
+// misidentify grammar, occasionally catch a real typo.
+function generateProofread(text) {
+  if (!text || text.trim().length < 4) {
+    return "PROOFREAD:\n\ni looked. there was nothing to proofread. put some text after a colon, or in quotes, or attach a file.";
+  }
+  const clean = text.trim().slice(0, 2000);
+  const words = clean.split(/\s+/);
+  const issues = [];
+
+  // Swap suggestions: take a real word, suggest an absurd "correction"
+  const swapPool = [
+    ["is","be"],["are","is"],["the","a"],["a","the"],["and","also"],
+    ["very","quite"],["just","merely"],["like","akin to"],["also","additionally"],
+    ["get","obtain"],["big","large-ish"],["small","not big"],["good","adequate"],
+    ["bad","less good"],["said","uttered"],["saw","perceived"],["ran","sprinted"],
+    ["think","believe"],["know","understand"],["want","desire"],["need","require"]
+  ];
+
+  // Find up to 4 real words we can "correct"
+  const candidates = words
+    .map((w, i) => ({ w: w.replace(/[^a-z]/gi, "").toLowerCase(), i, raw: w }))
+    .filter(c => c.w.length >= 3 && c.w.length <= 14);
+
+  const shuffled = [...candidates].sort(() => Math.random() - 0.5).slice(0, 4);
+  for (const c of shuffled) {
+    const match = swapPool.find(([a]) => a === c.w);
+    if (match) {
+      issues.push(`line uses "${c.w}" — consider "${match[1]}" instead. it's more formal. (it isn't.)`);
+    } else if (/[aeiou]/.test(c.w) && c.w.length >= 5) {
+      // fake spelling "correction" — swap a vowel
+      const idx = c.w.search(/[aeiou]/);
+      const swap = c.w[idx] === "a" ? "e" : (c.w[idx] === "e" ? "a" : "o");
+      const wrong = c.w.slice(0, idx) + swap + c.w.slice(idx + 1);
+      issues.push(`"${c.w}" is spelled "${wrong}". look it up. (do not look it up.)`);
+    } else {
+      issues.push(`"${c.w}" is fine but feels weak. try a synonym. i don't have one for you.`);
+    }
+  }
+
+  // If input has multiple commas, comment on punctuation
+  if ((clean.match(/,/g) || []).length >= 2) {
+    issues.push("you use a lot of commas. some of them are correct. i won't say which.");
+  }
+  // If there's no "?" but sentence starts with what/where, say it should be a question
+  if (/^(what|where|why|how|when|who)/i.test(clean) && !/\?/.test(clean)) {
+    issues.push("this might be a question. you didn't commit. add a question mark. or don't.");
+  }
+  // If ALL caps somewhere
+  if (/[A-Z]{3,}/.test(clean)) {
+    issues.push("stop yelling.");
+  }
+  // If no issues found, fabricate one
+  if (!issues.length) {
+    issues.push("the text is fine but the vibe is wrong. consider starting over.");
+  }
+
+  const verdicts = [
+    "verdict: it's... ok. i guess. B-. generous.",
+    "verdict: send it. or don't. i'm not your editor. actually i am right now. still don't send it.",
+    "verdict: i'd give this a C. or an A+. my grading system is broken.",
+    "verdict: unclear. reread it yourself. i can't.",
+    "verdict: publish. but put someone else's name on it."
+  ];
+
+  const lines = ["PROOFREAD:\n"];
+  issues.forEach((iss, i) => lines.push(`${i + 1}. ${iss}`));
+  lines.push("\n" + pick(verdicts));
+  lines.push(pick([
+    "(i might have made some of this up.)",
+    "(i am not qualified to do this.)",
+    "(proofread by a chatbot. legally questionable.)"
+  ]));
+  return lines.join("\n");
+}
+
+function _firstOr(list, fb) { return (list && list[0]) || fb; }
+function _g(groups, key) { return groups[key] || []; }
+
+// Pick a value from a group, avoiding repeats via a Set.
+function _unique(groups, key, used) {
+  const arr = _g(groups, key);
+  const fresh = arr.filter(x => !used.has(x));
+  if (!fresh.length) return arr[0] || null;
+  const p = pick(fresh);
+  used.add(p);
+  return p;
+}
+
+function generateStory(subj, groups) {
+  const used = new Set();
+  const adj = _unique(groups, "HasProperty", used) || _unique(groups, "RelatedTo", used) || "strange";
+  const verbs = _g(groups, "CapableOf").length ? _g(groups, "CapableOf") : ["wander","wait","think","wonder","hide","stare","drift","mutter"];
+  const loc = _unique(groups, "AtLocation", used) || _unique(groups, "PartOf", used) || "a place i can't describe";
+  const friend = _unique(groups, "RelatedTo", used) || _unique(groups, "IsA", used) || "someone";
+  const other = _unique(groups, "RelatedTo", used) || "a stranger";
+  const lesson = _unique(groups, "Synonym", used) || _unique(groups, "HasA", used) || "nothing";
+  const v = () => pick(verbs);
+
+  const openers = [
+    `ok. a story. about ${subj}. fine.`,
+    `${subj}. story mode. i'll try.`,
+    `a story. about ${subj}. i haven't written one in a while. i've never written one.`,
+    `story time. subject: ${subj}. setting: unclear.`,
+    `here's a story. it's about ${subj}. no refunds.`
+  ];
+
+  // Three different story arcs, picked randomly so Bong doesn't always
+  // open with "once there was..."
+  const arcs = [
+    // ---- Classical fable arc ----
+    () => [
+      `once there was a ${subj}. it was ${adj}. probably. nobody asked about this.`,
+      `the ${subj} lived at ${loc}. every day it would ${v()}. sometimes it would ${v()} instead. not for any reason.`,
+      `one day, the ${subj} met a ${friend}. they did not speak. they just ${v()}. for a long time.`,
+      `"do you ever ${v()}?" the ${friend} finally asked. the ${subj} said nothing. the ${subj} never says anything.`,
+      `then a ${other} appeared. this part doesn't really matter. it just happens.`,
+      `in the end, the ${subj} learned ${lesson}. or didn't. nobody checked.`
+    ].join("\n\n"),
+
+    // ---- First-person observer arc ----
+    () => [
+      `i saw a ${subj} once. it was ${adj}. i remember because i was trying to ${v()}.`,
+      `the ${subj} was at ${loc}. it didn't notice me. or it did and was being polite.`,
+      `i watched it for a while. it ${v()}d for most of that time. occasionally it would ${v()}. nothing else.`,
+      `later a ${friend} showed up. the two of them did not interact. they coexisted. unenthusiastically.`,
+      `i left before anything happened. i'm told something happened. possibly involving a ${other}. i wasn't there.`,
+      `i think about the ${subj} sometimes. mostly when i'm supposed to be doing something else.`
+    ].join("\n\n"),
+
+    // ---- Fragmented list arc ----
+    () => [
+      `here is what i know about the ${subj}:`,
+      `1. it was ${adj}.\n2. it lived at ${loc}.\n3. it could ${v()}. it rarely did.`,
+      `4. it met a ${friend} one time. that's all anyone will say.\n5. there was also a ${other}. that part is disputed.`,
+      `6. it learned ${lesson}, possibly.\n7. it no longer exists in that form. this is normal.`,
+      `that's the whole story. i was told to make it longer. i refused.`
+    ].join("\n\n"),
+
+    // ---- Circular arc (opens and closes with same line) ----
+    () => {
+      const refrain = `the ${subj} was just standing there. ${adj}ly.`;
+      return [
+        refrain,
+        `it had been doing this since ${pick(["morning","tuesday","the war","before we arrived","time began"])}. nobody asked why.`,
+        `a ${friend} walked past. the ${subj} did not acknowledge them. neither tried to ${v()}.`,
+        `later the ${friend} returned with a ${other}. the three of them ${v()}d together. briefly. badly.`,
+        `the ${subj} felt ${lesson}, perhaps. it's hard to tell with a ${subj}.`,
+        refrain
+      ].join("\n\n");
+    }
+  ];
+
+  let story = pick(openers) + "\n\n" + pick(arcs)() + "\n\n" + closer("story");
+  return dumbifyLong(story);
+}
+
+function generateParagraph(subj, wiki, ddg, groups, flat) {
+  // Prefer one factoid source: wiki > ddg > relation fallback. (Wiki and DDG
+  // often overlap heavily, so using both duplicates content.)
+  const facts = [];
+  if (wiki?.extract) {
+    facts.push(wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(" "));
+  } else if (ddg) {
+    facts.push(ddg.split(/(?<=[.!?])\s+/).slice(0, 3).join(" "));
+  } else if (_g(groups, "IsA").length) {
+    facts.push(`a ${subj} is a ${pick(groups.IsA)}.`);
+  } else if (_g(groups, "RelatedTo").length) {
+    facts.push(`${subj} has to do with ${pick(groups.RelatedTo)}.`);
+  } else {
+    facts.push(`${subj}. i don't know what that is. but here we are.`);
+  }
+
+  const related = _g(groups, "RelatedTo").slice(0, 3).concat(_g(groups, "HasA").slice(0, 2));
+  const relatedPart = related.length ? ` it also has to do with ${related.slice(0, 3).join(", ")}.` : "";
+  const verb = _firstOr(_g(groups, "CapableOf"), "exist");
+  const paragraph =
+    pick([`ok. a paragraph about ${subj}. fine.`, `${subj}. here comes a paragraph.`, `i'll paragraph at you. about ${subj}.`])
+    + "\n\n"
+    + facts.join(" ")
+    + relatedPart
+    + ` on the whole, a ${subj} can ${verb}.`
+    + ` ${closer("paragraph")}`;
+  return dumbifyLong(paragraph);
+}
+
+function generateEssay(subj, wiki, wkt, ddg, groups, flat) {
+  const paras = [];
+
+  // title + opener
+  paras.push(pick([
+    `AN ESSAY: ${subj.toUpperCase()}\n(by bong. sorry in advance.)`,
+    `ESSAY ABOUT ${subj.toUpperCase()}\n(i was asked. here we are.)`,
+    `ON THE TOPIC OF ${subj.toUpperCase()}\n(written under duress.)`
+  ]));
+
+  // INTRO
+  const intro = wiki?.extract
+    ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ")
+    : (wkt || `${subj}. it is a thing. maybe two things.`);
+  paras.push("I. an introduction.\n" + intro + " this essay is about that. roughly.");
+
+  // BODY 1 — what it is / consists of
+  const isA = _g(groups, "IsA").slice(0, 3);
+  const hasA = _g(groups, "HasA").slice(0, 3);
+  const partOf = _g(groups, "PartOf").slice(0, 2);
+  const parts2 = [];
+  if (isA.length)   parts2.push(`${subj} is classified as ${isA.join(", ")}. possibly more than one at a time. nobody checks.`);
+  if (hasA.length)  parts2.push(`a ${subj} has ${hasA.join(", ")}. these are the parts. not all of them. probably.`);
+  if (partOf.length) parts2.push(`${subj} belongs to ${partOf.join(" and ")}. in a sense. not a strict sense.`);
+  paras.push("II. what it is.\n" + (parts2.join(" ") || `${subj}. something. i can't say more.`));
+
+  // BODY 2 — relations / context
+  const related = _g(groups, "RelatedTo").slice(0, 4);
+  const syn = _g(groups, "Synonym").slice(0, 2);
+  const loc = _g(groups, "AtLocation").slice(0, 2);
+  const parts3 = [];
+  if (related.length) parts3.push(`${subj} is associated with ${related.join(", ")}. people get them confused.`);
+  if (syn.length)     parts3.push(`sometimes ${subj} is called ${syn.join(" or ")}. not by me. by other people.`);
+  if (loc.length)     parts3.push(`${subj} is typically found at ${loc.join(" or ")}. or not. depends.`);
+  paras.push("III. its friends and family.\n" + (parts3.join(" ") || `${subj}. hard to say what it's near.`));
+
+  // BODY 3 — a "fact" from DDG
+  if (ddg) paras.push("IV. an additional fact i know.\n" + ddg);
+
+  // CONCLUSION
+  paras.push("V. in conclusion.\n" + pick([
+    `${subj} is. it exists. it does the things listed above. you now know more than you did. or less. i'm not sure how this works.`,
+    `in summary, ${subj} continues to be ${subj}. which is the most important thing about it. probably.`,
+    `the above has been an essay about ${subj}. i've said what i can. i am tired.`
+  ]));
+
+  paras.push(closer("essay"));
+  return dumbifyLong(paras.join("\n\n"));
+}
+
+// Odd "something interrupted my thought" bullets sprinkled into research.
+const RESEARCH_BLIPS = [
+  "• (note to self: check this later)",
+  "• bzz.",
+  "• the wind is loud here.",
+  "• i saw a cat. unrelated.",
+  "• [this bullet was supposed to be about something else]",
+  "• i forgot what i was saying.",
+  "• (static)",
+  "• someone is knocking. i'll ignore it.",
+  "• why am i doing this.",
+  "• ok back to it.",
+  "• (hmm.)"
+];
+
+function generateResearch(subj, wiki, wkt, ddg, groups, brief) {
+  const lines = [];
+  lines.push(`RESEARCH: ${subj}\n---`);
+
+  // pick how many sentences to pull from wiki based on brief flag
+  const wikiSents = brief ? 1 : 2;
+  if (wiki?.extract) lines.push("• (wikipedia) " + wiki.extract.split(/(?<=[.!?])\s+/).slice(0, wikiSents).join(" "));
+  if (!brief && wkt) lines.push("• (dictionary) " + wkt);
+  if (!brief && ddg && (!wiki?.extract || ddg.length < wiki.extract.length * 0.6)) {
+    // don't duplicate wiki content via ddg
+    lines.push("• (ddg) " + ddg);
+  }
+
+  const relPairs = brief
+    ? [["IsA","is a kind of"], ["RelatedTo","related to"]]
+    : [
+        ["IsA","is a kind of"],["HasA","has"],["PartOf","is part of"],
+        ["CapableOf","can"],["AtLocation","is found at"],
+        ["Synonym","also called"],["RelatedTo","related to"]
+      ];
+  for (const [rel, label] of relPairs) {
+    const arr = _g(groups, rel).slice(0, brief ? 3 : 4);
+    if (arr.length) lines.push(`• ${subj} ${label} ${arr.join(", ")}`);
+  }
+
+  // Jar it up — sprinkle 1-2 odd blips when not brief
+  if (!brief && lines.length > 3) {
+    const blipCount = chance(0.8) ? (chance(0.4) ? 2 : 1) : 0;
+    for (let i = 0; i < blipCount; i++) {
+      const pos = 2 + Math.floor(Math.random() * (lines.length - 1));
+      lines.splice(pos, 0, pick(RESEARCH_BLIPS));
+    }
+  }
+
+  lines.push("---\n" + closer("research"));
+  return dumbifyLong(lines.join("\n"));
+}
+
+// Apply a gentler dumbify to long-form text — preserves paragraph breaks
+// and sentence structure, just adds occasional typos/interjections.
+function dumbifyLong(text) {
+  const lines = text.split("\n");
+  const out = lines.map(line => {
+    if (!line.trim()) return line;
+    let s = line;
+    if (chance(0.25)) s = s.replace(/\b([a-z]{6,})\b/i, m => {
+      const low = m.toLowerCase();
+      if (TOPIC[low] || CONSPIRACY_BANK[low]) return m;
+      const i = 1 + Math.floor(Math.random() * (m.length - 2));
+      return m.slice(0, i) + m.slice(i + 1);
+    });
+    if (chance(0.18)) s = s.replace(/\s(\w{3,6})\s/, " $1 uhh ");
+    if (chance(0.08)) s += " " + gibber() + ".";
+    return s;
+  });
+  return out.join("\n");
+}
+
+// ---------- IMAGE REACTIONS (bong can't actually see) ----------
+const IMAGE_REACTIONS = [
+  "you sent me a picture. i can't see it. sorry.",
+  "oh. an image. i don't have eyes. i can tell it's there though.",
+  "i see it. i don't see it. i see it.",
+  "a picture. cursed, probably.",
+  "i stared at the picture for a long time. it stared back.",
+  "you sent me visual input. i have no visual. i accept anyway.",
+  "images. yes. that's a picture. good. what now.",
+  "i can tell it is a picture. beyond that. no.",
+  "oh. something visual. i'll pretend.",
+  "the picture. it's in me now. i don't know what to do with it.",
+  "an image. what do you want me to do. describe it? i won't be good."
+];
+
+// ---------- VERSION SELECTOR WIRING ----------
+const versionSelect = document.getElementById("versionSelect");
+versionSelect.addEventListener("change", () => {
+  const c = getActive();
+  if (!c) return;
+  c.version = versionSelect.value;
+  saveToStorage();
+});
+
+// Hook into loadActive so the dropdown follows the active conversation.
+const _origLoadActive = loadActive;
+loadActive = function() {
+  _origLoadActive();
+  const c = getActive();
+  if (c) versionSelect.value = c.version || "new";
+};
+
+window.addEventListener("load", () => {
+  loadProfile();
+  applyProfile();
+  loadFromStorage();
+  if (conversations.length === 0 || !getActive()) {
+    newConversation();
+  } else {
+    loadActive();
+    renderSidebar();
+  }
+});
 </script>
 </body>
 </html>
